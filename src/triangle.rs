@@ -53,16 +53,21 @@ impl<const N: usize> SubdividedTriangle<N> {
             .map(|t| Rc::new(t))
             .collect::<Vec<_>>();
         
+        let n_triangles_up = N * (N + 1) / 2;
+        
         let adjacency = UnGraph::from_edges(
-            triangles.iter()
+            triangles[0..n_triangles_up].iter()
                 .enumerate()
-                .tuple_combinations()
+                .cartesian_product(
+                    triangles[n_triangles_up..triangles.len()].iter()
+                        .enumerate()
+                )
                 .filter(|((_, t_i), (_, t_j))| (
                     (t_i.u == t_j.u) as u32 + (t_i.u == t_j.v) as u32 + (t_i.u == t_j.w) as u32 +
                     (t_i.v == t_j.u) as u32 + (t_i.v == t_j.v) as u32 + (t_i.v == t_j.w) as u32 +
                     (t_i.w == t_j.u) as u32 + (t_i.w == t_j.v) as u32 + (t_i.w == t_j.w) as u32
                 ) == 2)
-                .map(|((i, _), (j, _))| (i as u32, j as u32))
+                .map(|((i, _), (j, _))| (i as u32, j as u32 + n_triangles_up as u32))
                 .collect::<Vec<(_, _)>>()
         );
         
