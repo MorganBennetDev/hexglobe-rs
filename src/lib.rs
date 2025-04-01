@@ -1,4 +1,4 @@
-#![feature(generic_const_exprs)]
+#![feature(test)]
 #[cfg(test)]
 mod tests;
 mod triangle;
