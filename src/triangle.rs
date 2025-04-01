@@ -1,77 +1,21 @@
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Add, Sub};
 use std::rc::Rc;
+use glam::IVec3;
 use itertools::Itertools;
 use petgraph::graph::UnGraph;
 
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Ord, Debug)]
-struct RationalVector<const N: usize> {
-    x: i32,
-    y: i32,
-    z: i32
-}
-
-impl<const N: usize> RationalVector<N> {
-    const fn new(x: i32, y: i32, z: i32) -> Self {
-        Self { x, y, z }
-    }
-}
-
-impl<const N: usize> Add for RationalVector<N> {
-    type Output = RationalVector<N>;
-    
-    fn add(self, rhs: Self) -> Self::Output {
-        RationalVector::new(
-            self.x + rhs.x,
-            self.y + rhs.y,
-            self.z + rhs.z
-        )
-    }
-}
-
-impl<const N: usize> Sub for RationalVector<N> {
-    type Output = RationalVector<N>;
-    
-    fn sub(self, rhs: Self) -> Self::Output {
-        RationalVector::new(
-            self.x - rhs.x,
-            self.y - rhs.y,
-            self.z - rhs.z
-        )
-    }
-}
-
-impl<const N: usize> PartialOrd for RationalVector<N> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.x == other.x && self.y == other.y && self.z == other.z {
-            Some(Ordering::Equal)
-        } else {
-            let gt_other = self.x > other.x ||
-                (self.x == other.x && (self.y > other.y ||
-                    (self.y == other.y && self.z > other.z)));
-            
-            if gt_other {
-                Some(Ordering::Greater)
-            } else {
-                Some(Ordering::Less)
-            }
-        }
-    }
-}
-
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 struct Triangle {
-    u: Rc<RationalVector<3>>,
-    v: Rc<RationalVector<3>>,
-    w: Rc<RationalVector<3>>
+    u: Rc<IVec3>,
+    v: Rc<IVec3>,
+    w: Rc<IVec3>
 }
 
 #[derive(Debug)]
 pub struct SubdividedTriangle<const N: usize> {
-    vertices: HashMap<RationalVector<3>, Rc<RationalVector<3>>>,
+    vertices: HashMap<IVec3, Rc<IVec3>>,
     triangles: Vec<Rc<Triangle>>,
     adjacency: UnGraph<u32, ()>
 }
@@ -85,12 +29,12 @@ impl<const N: usize> SubdividedTriangle<N> {
             .cartesian_product(axis.clone())
             .cartesian_product(axis.clone())
             .filter(|((x, y), z)| x + y + z == N)
-            .map(|((x, y), z)| RationalVector { x: x as i32, y: y as i32, z: z as i32 })
+            .map(|((x, y), z)| IVec3::new(x as i32, y as i32, z as i32))
             .map(|v| (v, Rc::new(v)))
             .collect::<HashMap<_, _>>();
         
-        let du = RationalVector::new(-1, 1, 0);
-        let dv = RationalVector::new(-1, 0, 1);
+        let du = IVec3::new(-1, 1, 0);
+        let dv = IVec3::new(-1, 0, 1);
         let triangles_up = vertices.keys()
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
             .map(|v| Triangle {
@@ -113,10 +57,11 @@ impl<const N: usize> SubdividedTriangle<N> {
             triangles.iter()
                 .enumerate()
                 .tuple_combinations()
-                .filter(|((_, t_i), (_, t_j))| HashSet::from([
-                    t_i.u.clone(), t_i.v.clone(), t_i.w.clone(),
-                    t_j.u.clone(), t_j.v.clone(), t_j.w.clone()
-                ]).iter().count() == 2)
+                .filter(|((_, t_i), (_, t_j))| (
+                    (t_i.u == t_j.u) as u32 + (t_i.u == t_j.v) as u32 + (t_i.u == t_j.w) as u32 +
+                    (t_i.v == t_j.u) as u32 + (t_i.v == t_j.v) as u32 + (t_i.v == t_j.w) as u32 +
+                    (t_i.w == t_j.u) as u32 + (t_i.w == t_j.v) as u32 + (t_i.w == t_j.w) as u32
+                ) == 2)
                 .map(|((i, _), (j, _))| (i as u32, j as u32))
                 .collect::<Vec<(_, _)>>()
         );
