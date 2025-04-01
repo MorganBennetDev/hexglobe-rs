@@ -5,9 +5,7 @@ edition = "2024"
 
 [dependencies]
 itertools = "0.14.0"
-num-rational = "0.4"
 petgraph = "0.7.1"
-rayon = "1.10.0"
 
 [dev-dependencies]
 divan = "0.1.17"
