@@ -79,61 +79,100 @@ pub struct SubdividedTriangle<const N: usize> {
 
 impl<const N: usize> SubdividedTriangle<N> {
     pub fn new() -> Self {
-        let axis = (0..(N+1)).map(|i| Rational32::new(i as i32, N as i32));
-        let vertices = axis.clone()
-            .cartesian_product(axis.clone())
-            .cartesian_product(axis.clone())
-            .filter(|((x, y), z)| x + y + z == Rational32::ONE)
-            .map(|((x, y), z)| RationalVector { x, y, z })
-            .map(|v| (v, Rc::new(v)))
-            .unique()
-            .collect::<HashMap<_, _>>();
-        
-        let d = Rational32::new(1, N as i32);
-        let du = RationalVector::new(
-            -d,
-            d,
-            Rational32::ZERO
-        );
-        let dv = RationalVector::new(
-            -d,
-            Rational32::ZERO,
-            d
-        );
-        let triangles_up = vertices.keys()
-            .filter(|v| v.x > Rational32::ZERO && v.y < Rational32::ONE && v.z < Rational32::ONE)
-            .map(|v| Triangle {
-                u: vertices.get(&(*v + du)).unwrap().clone(),
-                v: vertices.get(&(*v + dv)).unwrap().clone(),
-                w: vertices.get(v).unwrap().clone()
-            });
-        let triangles_down = vertices.keys()
-            .filter(|v| v.x < Rational32::ONE && v.y > Rational32::ZERO && v.z > Rational32::ZERO)
-            .map(|v| Triangle {
-                u: vertices.get(&(*v - du)).unwrap().clone(),
-                v: vertices.get(&(*v - dv)).unwrap().clone(),
-                w: vertices.get(v).unwrap().clone()
-            });
-        let triangles = triangles_up.chain(triangles_down)
-            .map(|t| Rc::new(t))
-            .collect::<Vec<_>>();
-        
-        let mut adjacency = UnGraph::from_edges(
-            triangles.iter()
-                .enumerate()
-                .tuple_combinations()
-                .filter(|((i, t_i), (j, t_j))| HashSet::from([
+        if N == 0 {
+            let vertices = [
+                RationalVector::new(
+                    Rational32::ONE,
+                    Rational32::ZERO,
+                    Rational32::ZERO
+                ),
+                RationalVector::new(
+                    Rational32::ZERO,
+                    Rational32::ONE,
+                    Rational32::ZERO
+                ),
+                RationalVector::new(
+                    Rational32::ZERO,
+                    Rational32::ZERO,
+                    Rational32::ONE
+                )
+            ].iter().map(|v| (v.clone(), Rc::new(v.clone()))).collect::<HashMap<_, _>>();
+            
+            let triangles = vertices.keys()
+                .tuple_windows::<(_, _, _)>()
+                .map(|(u, v, w)| Triangle {
+                    u: vertices.get(u).unwrap().clone(),
+                    v: vertices.get(v).unwrap().clone(),
+                    w: vertices.get(w).unwrap().clone()
+                })
+                .map(|t| Rc::new(t))
+                .collect::<Vec<_>>();
+            
+            let mut adjacency = UnGraph::<u32, ()>::default();
+            adjacency.add_node(0);
+            
+            Self {
+                vertices,
+                triangles,
+                adjacency
+            }
+        } else {
+            let axis = (0..(N + 1)).map(|i| Rational32::new(i as i32, N as i32));
+            let vertices = axis.clone()
+                .cartesian_product(axis.clone())
+                .cartesian_product(axis.clone())
+                .filter(|((x, y), z)| x + y + z == Rational32::ONE)
+                .map(|((x, y), z)| RationalVector { x, y, z })
+                .map(|v| (v, Rc::new(v)))
+                .unique()
+                .collect::<HashMap<_, _>>();
+            
+            let d = Rational32::new(1, N as i32);
+            let du = RationalVector::new(
+                -d,
+                d,
+                Rational32::ZERO
+            );
+            let dv = RationalVector::new(
+                -d,
+                Rational32::ZERO,
+                d
+            );
+            let triangles_up = vertices.keys()
+                .filter(|v| v.x > Rational32::ZERO && v.y < Rational32::ONE && v.z < Rational32::ONE)
+                .map(|v| Triangle {
+                    u: vertices.get(&(*v + du)).unwrap().clone(),
+                    v: vertices.get(&(*v + dv)).unwrap().clone(),
+                    w: vertices.get(v).unwrap().clone()
+                });
+            let triangles_down = vertices.keys()
+                .filter(|v| v.x < Rational32::ONE && v.y > Rational32::ZERO && v.z > Rational32::ZERO)
+                .map(|v| Triangle {
+                    u: vertices.get(&(*v - du)).unwrap().clone(),
+                    v: vertices.get(&(*v - dv)).unwrap().clone(),
+                    w: vertices.get(v).unwrap().clone()
+                });
+            let triangles = triangles_up.chain(triangles_down)
+                .map(|t| Rc::new(t))
+                .collect::<Vec<_>>();
+            
+            let adjacency = UnGraph::from_edges(
+                triangles.iter()
+                    .enumerate()
+                    .tuple_combinations()
+                    .filter(|((_, t_i), (_, t_j))| HashSet::from([
                         t_i.u.clone(), t_i.v.clone(), t_i.w.clone(),
                         t_j.u.clone(), t_j.v.clone(), t_j.w.clone()
                     ]).iter().count() == 2)
-                .map(|((i, _), (j, _))| (i as u32, j as u32))
-                .collect::<Vec<(_, _)>>()
-        );
-        
-        Self {
-            vertices,
-            triangles,
-            adjacency
+                    .map(|((i, _), (j, _))| (i as u32, j as u32))
+                    .collect::<Vec<(_, _)>>()
+            );
+            
+            Self {
+                vertices,
+                triangles,
+                adjacency
+            }
         }
     }
     
