@@ -22,13 +22,13 @@ impl<T: Clone> Triangle<T> {
 }
 
 #[derive(Debug)]
-pub struct SubdividedTriangle<const N: usize> {
+pub struct SubdividedTriangle<const N: u32> {
     pub vertices: HashMap<ImplicitDenominator<IVec3, 3>, Rc<ImplicitDenominator<IVec3, 3>>>,
     pub triangles: Vec<Rc<Triangle<ImplicitDenominator<IVec3, 3>>>>,
     pub adjacency: UnGraph<u32, ()>
 }
 
-impl<const N: usize> SubdividedTriangle<N> {
+impl<const N: u32> SubdividedTriangle<N> {
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
@@ -61,7 +61,7 @@ impl<const N: usize> SubdividedTriangle<N> {
             .map(|t| Rc::new(t))
             .collect::<Vec<_>>();
         
-        let n_triangles_up = N * (N + 1) / 2;
+        let n_triangles_up = (N * (N + 1) / 2) as usize;
         
         let adjacency = UnGraph::from_edges(
             triangles[0..n_triangles_up].iter()

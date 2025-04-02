@@ -7,6 +7,6 @@ fn main() {
 }
 
 #[divan::bench(consts = [1, 2, 4, 8, 16, 32, 64])]
-fn subdivision<const N: usize>() {
+fn subdivision<const N: u32>() {
     SubdividedTriangle::<N>::new();
 }
