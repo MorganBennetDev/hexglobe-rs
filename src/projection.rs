@@ -35,6 +35,7 @@ impl<const N: u32> Seed<N> where
      0, -p, -1 |    pi-k, 270
      */
     fn icosahedron() -> Self {
+        #[allow(unused_variables)]
         let denominator = 3 * N as i32;
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
