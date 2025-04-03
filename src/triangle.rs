@@ -21,7 +21,7 @@ impl<T: Clone> Triangle<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
     pub vertices: HashMap<ImplicitDenominator<IVec3, 3>, Rc<ImplicitDenominator<IVec3, 3>>>,
     pub triangles: Vec<Rc<Triangle<ImplicitDenominator<IVec3, 3>>>>,
@@ -45,16 +45,16 @@ impl<const N: u32> SubdividedTriangle<N> {
         let dv = IVec3::new(-1, 0, 1);
         let triangles_up = vertices.keys()
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
-            .map(|v| Triangle {
-                u: vertices.get(&ImplicitDenominator::wrap(*v.deref() + du)).unwrap().clone(),
-                v: vertices.get(&ImplicitDenominator::wrap(*v.deref() + dv)).unwrap().clone(),
-                w: vertices.get(v).unwrap().clone()
-            });
+            .map(|v| Triangle::new(
+                vertices.get(v).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(*v.deref() + du)).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(*v.deref() + dv)).unwrap().clone()
+            ));
         let triangles_down = vertices.keys()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
-                vertices.get(&ImplicitDenominator::wrap(*v.deref() - du)).unwrap().clone(),
                 vertices.get(&ImplicitDenominator::wrap(*v.deref() - dv)).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(*v.deref() - du)).unwrap().clone(),
                 vertices.get(v).unwrap().clone()
             ));
         let triangles = triangles_up.chain(triangles_down)
