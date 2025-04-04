@@ -35,6 +35,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
         let axis = 0..(N + 1);
+        // Vertices are in ascending lexicographic order
         let vertices = axis.clone()
             .cartesian_product(axis.clone())
             .cartesian_product(axis.clone())
@@ -75,5 +76,61 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     pub fn downward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
         &self.triangles[Self::N_TRIANGLES_UP..Self::N_TRIANGLES]
+    }
+    
+    pub fn u(&self) -> usize {
+        self.upward_triangles().iter()
+            .position(|t| t.u.y == 0 && t.u.z == 0)
+            .unwrap()
+    }
+    
+    pub fn v(&self) -> usize {
+        self.upward_triangles().iter()
+            .position(|t| t.v.x == 0 && t.v.z == 0)
+            .unwrap()
+    }
+    
+    pub fn w(&self) -> usize {
+        self.upward_triangles().iter()
+            .position(|t| t.w.x == 0 && t.w.y == 0)
+            .unwrap()
+    }
+    
+    pub fn uv(&self) -> impl DoubleEndedIterator<Item = usize> {
+        self.upward_triangles().iter()
+            .enumerate()
+            .filter(|(_, t)| t.u.z == 0 && t.v.z == 0)
+            .sorted_by_key(|(_, t)| t.u.y)
+            .map(|(i, _)| i)
+    }
+    
+    pub fn vw(&self) -> impl DoubleEndedIterator<Item = usize> {
+        self.upward_triangles().iter()
+            .enumerate()
+            .filter(|(_, t)| t.v.x == 0 && t.w.x == 0)
+            .sorted_by_key(|(_, t)| t.v.z)
+            .map(|(i, _)| i)
+    }
+    
+    pub fn wu(&self) -> impl DoubleEndedIterator<Item = usize> {
+        self.upward_triangles().iter()
+            .enumerate()
+            .filter(|(_, t)| t.u.y == 0 && t.w.y == 0)
+            .sorted_by_key(|(_, t)| t.w.x)
+            .map(|(i, _)| i)
+    }
+    
+    // Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
+    // ordered for efficient computation.
+    pub fn adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
+        (0..((N - 1) as usize)).flat_map(|i|
+            (0..(N as usize - 1 - i))
+                .map(move |j| Self::N_TRIANGLES_UP + i + j)
+                .flat_map(move |j| [
+                    (j, j - (10 - i)),
+                    (j, j - (9 - i)),
+                    (j, j - 6)
+                ])
+        )
     }
 }
