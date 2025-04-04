@@ -5,7 +5,6 @@ use std::ops::Deref;
 use std::rc::Rc;
 use glam::IVec3;
 use itertools::Itertools;
-use petgraph::graph::UnGraph;
 use crate::denominator::ImplicitDenominator;
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
@@ -28,6 +27,10 @@ pub struct SubdividedTriangle<const N: u32> {
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
+    pub const N_TRIANGLES: usize = (N * N) as usize;
+    pub const N_VERTICES: usize = (N * (N + 1) / 2) as usize;
+    const N_TRIANGLES_UP: usize = (N * (N + 1) / 2) as usize;
+    
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
@@ -60,36 +63,17 @@ impl<const N: u32> SubdividedTriangle<N> {
             .map(|t| Rc::new(t))
             .collect::<Vec<_>>();
         
-        let n_triangles_up = (N * (N + 1) / 2) as usize;
-        
-        let adjacency = UnGraph::from_edges(
-            triangles[0..n_triangles_up].iter()
-                .enumerate()
-                .cartesian_product(
-                    triangles[n_triangles_up..triangles.len()].iter()
-                        .enumerate()
-                )
-                .filter(|((_, t_i), (_, t_j))|
-                    t_i.v == t_j.v && t_i.w == t_j.w ||
-                    t_i.u == t_j.v && t_i.w == t_j.u ||
-                    t_i.u == t_j.w && t_i.v == t_j.u
-                )
-                .map(|((i, _), (j, _))| (i as u32, j as u32 + n_triangles_up as u32))
-                .collect::<Vec<(_, _)>>()
-        );
-        
         Self {
             vertices,
             triangles,
-            adjacency
         }
     }
     
-    pub fn vertex_count(&self) -> usize {
-        self.vertices.iter().count()
+    pub fn upward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
+        &self.triangles[0..Self::N_TRIANGLES_UP]
     }
     
-    pub fn triangle_count(&self) -> usize {
-        self.triangles.iter().count()
+    pub fn downward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
+        &self.triangles[Self::N_TRIANGLES_UP..Self::N_TRIANGLES]
     }
 }
