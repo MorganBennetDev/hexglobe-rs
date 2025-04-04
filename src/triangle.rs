@@ -23,9 +23,8 @@ impl<T: Clone> Triangle<T> {
 
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
-    pub vertices: HashMap<ImplicitDenominator<IVec3, 3>, Rc<ImplicitDenominator<IVec3, 3>>>,
-    pub triangles: Vec<Rc<Triangle<ImplicitDenominator<IVec3, 3>>>>,
-    pub adjacency: UnGraph<u32, ()>
+    pub vertices: HashMap<ImplicitDenominator<IVec3, N>, Rc<ImplicitDenominator<IVec3, N>>>,
+    pub triangles: Vec<Rc<Triangle<ImplicitDenominator<IVec3, N>>>>,
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
