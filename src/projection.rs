@@ -66,29 +66,29 @@ impl<const N: u32> Seed<N> where
         
         let faces = vec![
             // Top
-            triangle!( 10,  2, 0  ), // 0
-            triangle!(  5, 10, 0  ), // 1
-            triangle!(  4,  5, 0  ), // 2
-            triangle!(  8,  4, 0  ), // 3
-            triangle!(  2,  8, 0  ), // 4
+            triangle!(  0, 10,  2 ), // 0
+            triangle!(  0,  5, 10 ), // 1
+            triangle!(  0,  4,  5 ), // 2
+            triangle!(  0,  8,  4 ), // 3
+            triangle!(  0,  2,  8 ), // 4
             // Upper middle
-            triangle!( 10,  7, 2  ), // 5
-            triangle!(  5, 11, 10 ), // 6
-            triangle!(  4,  1, 5  ), // 7
-            triangle!(  8,  9, 4  ), // 8
-            triangle!(  6,  8, 2  ), // 9
+            triangle!(  7,  2, 10 ), // 5
+            triangle!( 11, 10,  5 ), // 6
+            triangle!(  1,  5,  4 ), // 7
+            triangle!(  9,  4,  8 ), // 8
+            triangle!(  6,  8,  2 ), // 9
             // Lower middle
-            triangle!( 11,  7, 10 ), // 10
-            triangle!(  1, 11, 5  ), // 11
-            triangle!(  9,  1, 4  ), // 12
-            triangle!(  6,  9, 8  ), // 13
-            triangle!(  7,  6, 2  ), // 14
+            triangle!( 10, 11,  7 ), // 10
+            triangle!(  5,  1, 11 ), // 11
+            triangle!(  4,  9,  1 ), // 12
+            triangle!(  8,  6,  9 ), // 13
+            triangle!(  2,  7,  6 ), // 14
             // Bottom
-            triangle!( 11,  3, 7  ), // 15
-            triangle!(  1,  3, 11 ), // 16
-            triangle!(  9,  3, 1  ), // 17
-            triangle!(  3,  9, 6  ), // 18
-            triangle!(  7,  3, 6  ), // 19
+            triangle!(  3,  7, 11 ), // 15
+            triangle!(  3, 11,  1 ), // 16
+            triangle!(  3,  1,  9 ), // 17
+            triangle!(  3,  9,  6 ), // 18
+            triangle!(  3,  6,  7 ), // 19
         ];
         
         let adjacency = UnGraph::from_edges(vec![
