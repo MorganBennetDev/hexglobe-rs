@@ -4,6 +4,9 @@ use crate::triangle::SubdividedTriangle;
 fn subdivision() {
     let test = SubdividedTriangle::<3>::new();
     
-    assert_eq!(test.vertex_count(), 10, "Incorrect number of vertices in subdivision.");
-    assert_eq!(test.triangle_count(), 9, "Incorrect number of triangles in subdivision.");
+    assert_eq!(test.vertices.len(), 10, "Incorrect number of vertices in subdivision.");
+    assert_eq!(test.triangles.len(), 9, "Incorrect number of triangles in subdivision.");
+    
+    assert_eq!(test.vertices.len(), SubdividedTriangle::<3>::N_VERTICES, "Constant N_VERTICES is incorrect.");
+    assert_eq!(test.triangles.len(), SubdividedTriangle::<3>::N_TRIANGLES, "Constant N_TRIANGLES is incorrect.");
 }
