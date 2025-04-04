@@ -46,16 +46,16 @@ impl<const N: u32> Seed<N> where
         let vertices = vec![
             vertex!( 0,  1, 0 ), // 0
             vertex!( 1, -1, 0 ), // 1
-            vertex!( 0,  1, 2 ), // 2
-            vertex!( 1, -1, 2 ), // 3
-            vertex!( 0,  1, 1 ), // 4
-            vertex!( 0, -1, 1 ), // 5
-            vertex!( 1, -1, 1 ), // 6
-            vertex!(-1,  1, 1 ), // 7
-            vertex!( 0,  1, 1 ), // 8
-            vertex!( 1, -1, 3 ), // 9
-            vertex!( 0,  1, 3 ), // 10
-            vertex!( 1, -1, 3 ), // 11
+            vertex!( 0,  1, 180 ), // 2
+            vertex!( 1, -1, 180 ), // 3
+            vertex!( 0,  1, 90 ), // 4
+            vertex!( 0, -1, 90 ), // 5
+            vertex!( 1, -1, 90 ), // 6
+            vertex!(-1,  1, 90 ), // 7
+            vertex!( 0,  1, 90 ), // 8
+            vertex!( 1, -1, 270 ), // 9
+            vertex!( 0,  1, 270 ), // 10
+            vertex!( 1, -1, 270 ), // 11
         ];
         
         macro_rules! triangle {
