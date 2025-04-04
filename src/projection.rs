@@ -13,7 +13,6 @@ struct Seed<const N: u32> where
     [(); (3 * N) as usize] : Sized {
     vertices: Vec<Rc<ImplicitDenominator<IVec3, {3 * N}>>>,
     faces: Vec<Triangle<ImplicitDenominator<IVec3, {3 * N}>>>,
-    adjacency: UnGraph<u32, ()>
 }
 
 impl<const N: u32> Seed<N> where
@@ -90,31 +89,6 @@ impl<const N: u32> Seed<N> where
             triangle!(  3,  9,  6 ), // 18
             triangle!(  3,  6,  7 ), // 19
         ];
-        
-        let adjacency = UnGraph::from_edges(vec![
-            (0, 1), (0, 4), (0, 5),
-            (1, 2), (1, 6),
-            (2, 3), (2, 7),
-            (3, 4), (3, 8),
-            (4, 9),
-            
-            (5, 10), (5, 14),
-            (6, 10), (6, 11),
-            (7, 11), (7, 12),
-            (8, 12), (8, 13),
-            (9, 13), (9, 14),
-            
-            (10, 15),
-            (11, 16),
-            (12, 17),
-            (13, 18),
-            (14, 19),
-            
-            (15, 16), (15, 19),
-            (16, 17),
-            (17, 18),
-            (18, 19)
-        ]);
         
         Self {
             vertices,
