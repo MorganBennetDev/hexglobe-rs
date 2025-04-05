@@ -27,7 +27,7 @@ pub struct SubdividedTriangle<const N: u32> {
 
 impl<const N: u32> SubdividedTriangle<N> {
     pub const N_TRIANGLES: usize = (N * N) as usize;
-    pub const N_VERTICES: usize = (N * (N + 1) / 2) as usize;
+    pub const N_VERTICES: usize = ((N + 1) * (N + 2) / 2) as usize;
     const N_TRIANGLES_UP: usize = (N * (N + 1) / 2) as usize;
     
     pub fn new() -> Self {
