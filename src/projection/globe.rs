@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::collections::HashMap;
 use std::ops::Deref;
 use glam::IVec3;

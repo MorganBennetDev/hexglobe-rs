@@ -1,9 +1,17 @@
 use crate::projection::globe::{ExactFace, Globe};
+use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
 // Number of vertices, edges, and faces of icosahedron.
 const V: usize = 12;
 const E: usize = 30;
 const F: usize = 20;
+
+fn face_creation_test<const N: u32>() where
+    [(); (3 * N) as usize] : Sized {
+    let template = SubdividedTriangle::<N>::new();
+    
+    // assert_eq!(Globe::<N>)
+}
 
 #[test]
 fn basic_counts() {
