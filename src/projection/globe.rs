@@ -6,7 +6,7 @@ use crate::denominator::ImplicitDenominator;
 use crate::projection::packed_index::PackedIndex;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
-enum ExactFace {
+pub enum ExactFace {
     Pentagon([PackedIndex; 5]),
     Hexagon([PackedIndex; 6])
 }
@@ -15,7 +15,6 @@ pub struct Globe<const N: u32> where
     [(); (3 * N) as usize] : Sized {
     pub vertices: HashMap<PackedIndex, ImplicitDenominator<IVec3, {3 * N}>>,
     pub faces: Vec<ExactFace>,
-    // adjacency: UnGraph<u32, ()>
 }
 
 impl<const N: u32> Globe<N> where
@@ -112,15 +111,22 @@ impl<const N: u32> Globe<N> where
     }
     
     fn vertex_faces_from_template<const M: u32>(template: &SubdividedTriangle<M>) -> impl Iterator<Item = ExactFace> {
-        let tb = (0..5)
-            .chain(15..16)
-            .map(|face| ExactFace::Pentagon([
-                PackedIndex::new(face, template.u()),
-                PackedIndex::new(face, template.u()),
-                PackedIndex::new(face, template.u()),
-                PackedIndex::new(face, template.u()),
-                PackedIndex::new(face, template.u()),
-            ]));
+        let tb = [
+            ExactFace::Pentagon([
+                PackedIndex::new(0, template.u()),
+                PackedIndex::new(1, template.u()),
+                PackedIndex::new(2, template.u()),
+                PackedIndex::new(3, template.u()),
+                PackedIndex::new(4, template.u()),
+            ]),
+            ExactFace::Pentagon([
+                PackedIndex::new(19, template.u()),
+                PackedIndex::new(18, template.u()),
+                PackedIndex::new(17, template.u()),
+                PackedIndex::new(16, template.u()),
+                PackedIndex::new(15, template.u()),
+            ])
+        ].into_iter();
         
         let um = (5..10)
             .map(|face| ExactFace::Pentagon([
