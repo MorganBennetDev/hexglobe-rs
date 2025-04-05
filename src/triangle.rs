@@ -85,6 +85,16 @@ impl<const N: u32> SubdividedTriangle<N> {
         Self::N_TRIANGLES_UP..Self::N_TRIANGLES
     }
     
+    // Iterator of indices of triangles with at least one vertex whose x coordinate is x sorted by increasing y
+    pub fn level_x(&self, x: ImplicitDenominator<u32, N>) -> impl Iterator<Item = usize> {
+        let length = (N - x.0) as usize;
+        let start = Self::N_TRIANGLES_UP + 1 - length * (length + 1) / 2;
+        
+        (start..(start + length + 1)).interleave(
+            (start..(start + length)).map(move |i| i + Self::N_TRIANGLES_UP + 1 - x.0 as usize)
+        )
+    }
+    
     pub fn u(&self) -> usize {
         self.upward_triangles().iter()
             .position(|t| t.u.y == 0 && t.u.z == 0)
