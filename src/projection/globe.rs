@@ -53,7 +53,7 @@ impl<const N: u32> Globe<N> where
     lm-b:  vw-wv
     b-b:   uv-uw
     */
-    fn faces_from_template<const M: u32>(template: &SubdividedTriangle<M>) -> impl Iterator<Item = ExactFace> {
+    fn faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         Self::vertex_faces_from_template(&template)
             .chain(
                 Self::edge_faces_from_template(&template)
@@ -63,7 +63,7 @@ impl<const N: u32> Globe<N> where
             )
     }
     
-    fn edge_faces_from_template<const M: u32>(template: &SubdividedTriangle<M>) -> impl Iterator<Item = ExactFace> {
+    fn edge_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         let t_t = template.wu()
             .zip(template.uv().rev())
             .tuple_windows::<(_, _, _)>()
@@ -110,7 +110,7 @@ impl<const N: u32> Globe<N> where
             ]))
     }
     
-    fn vertex_faces_from_template<const M: u32>(template: &SubdividedTriangle<M>) -> impl Iterator<Item = ExactFace> {
+    fn vertex_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         let tb = [
             ExactFace::Pentagon([
                 PackedIndex::new(0, template.u()),
