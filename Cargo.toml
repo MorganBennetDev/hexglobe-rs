@@ -14,3 +14,7 @@ divan = "0.1.17"
 [[bench]]
 name = "subdivision"
 harness = false
+
+[[bench]]
+name = "projection"
+harness = false

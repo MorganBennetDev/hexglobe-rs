@@ -1,4 +1,3 @@
-
 use hexglobe::subdivision::subdivided_triangle::SubdividedTriangle;
 
 fn main() {
