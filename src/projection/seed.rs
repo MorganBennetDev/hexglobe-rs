@@ -1,9 +1,16 @@
+use std::f32::consts::{FRAC_PI_3, FRAC_PI_6};
 use std::rc::Rc;
-use glam::IVec3;
+use glam::{IVec3, Vec3};
 use crate::denominator::ImplicitDenominator;
 use crate::subdivision::triangle::Triangle;
 
-struct Seed<const N: u32> where
+/*
+acos(phi/sqrt(phi^2 + 1))
+Where phi is the Golden ratio
+*/
+const FRAC_K_3_32: f32 = 0.5535743588970452515085327300892685200;
+
+pub struct Seed<const N: u32> where
     [(); (3 * N) as usize] : Sized {
     vertices: Vec<Rc<ImplicitDenominator<IVec3, {3 * N}>>>,
     faces: Vec<Triangle<ImplicitDenominator<IVec3, {3 * N}>>>,
@@ -27,7 +34,7 @@ impl<const N: u32> Seed<N> where
      0, -p,  1 |       k, 270
      0, -p, -1 |    pi-k, 270
      */
-    fn icosahedron() -> Self {
+    pub fn icosahedron() -> Self {
         #[allow(unused_variables)]
         let denominator = 3 * N as i32;
         macro_rules! vertex {
@@ -88,5 +95,27 @@ impl<const N: u32> Seed<N> where
             vertices,
             faces,
         }
+    }
+    
+    pub fn to_local(&self, f: usize, v: ImplicitDenominator<IVec3, {3 * N }>) -> ImplicitDenominator<IVec3, {3 * N }> {
+        let face = &self.faces[f];
+        
+        ImplicitDenominator::wrap((face.u.0 * v.x + face.v.0 * v.y + face.w.0 * v.z) / 3)
+    }
+    
+    /*
+    x is coefficient on pi in phi.
+    y is coefficient on k in phi
+    z is coefficient on pi/2 in theta.
+    */
+    pub fn local_to_euclidean(&self, v: &ImplicitDenominator<IVec3, {3 * N}>, radius: f32) -> Vec3 {
+        let theta = (v.z as f32 / N as f32) * FRAC_PI_6;
+        let phi = v.x as f32 * FRAC_PI_3 / N as f32 + v.y as f32 / N as f32 * FRAC_K_3_32;
+        
+        Vec3::new(
+            theta.sin() * phi.cos(),
+            theta.sin() * phi.cos(),
+            theta.cos()
+        ) * radius
     }
 }

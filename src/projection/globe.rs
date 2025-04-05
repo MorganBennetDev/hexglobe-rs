@@ -3,10 +3,11 @@ mod tests;
 
 use std::collections::HashMap;
 use std::ops::Deref;
-use glam::IVec3;
+use glam::{IVec3, Vec3};
 use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
 use crate::projection::packed_index::PackedIndex;
+use crate::projection::seed::Seed;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
 #[derive(Debug)]
@@ -15,16 +16,18 @@ pub enum ExactFace {
     Hexagon([PackedIndex; 6])
 }
 
-pub struct Globe<const N: u32> where
+pub struct ExactGlobe<const N: u32> where
     [(); (3 * N) as usize] : Sized {
+    seed: Seed<N>,
     pub vertices: HashMap<PackedIndex, ImplicitDenominator<IVec3, {3 * N}>>,
     pub faces: Vec<ExactFace>,
 }
 
-impl<const N: u32> Globe<N> where
+impl<const N: u32> ExactGlobe<N> where
     [(); (3 * N) as usize] : Sized {
     pub fn new() -> Self {
         let template = SubdividedTriangle::<N>::new();
+        let seed = Seed::<N>::icosahedron();
         
         let vertices = template.triangles.iter()
             .map(|t| ImplicitDenominator::<_, {3 * N}>::wrap(
@@ -32,13 +35,17 @@ impl<const N: u32> Globe<N> where
             ))
             .enumerate()
             .cartesian_product(0..20)
-            .map(|((i, t), face)| (PackedIndex::new(face, i), t))
+            .map(|((i, v), face)| (
+                PackedIndex::new(face, i),
+                seed.to_local(face, v)
+            ))
             .collect::<HashMap<_, _>>();
         
         let faces = Self::faces_from_template(&template)
             .collect::<Vec<_>>();
         
         Self {
+            seed,
             vertices,
             faces
         }
@@ -162,7 +169,7 @@ impl<const N: u32> Globe<N> where
             .chain(lm)
     }
     
-    fn face_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {        
+    fn face_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         (0..N)
             .map(|x| template.level_x(ImplicitDenominator::wrap(x)).collect::<Vec<_>>())
             .tuple_windows::<(_, _)>()
@@ -183,5 +190,12 @@ impl<const N: u32> Globe<N> where
                     ]))
                     .collect::<Vec<_>>()
             )
+    }
+    
+    pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
+        let radius = r.unwrap_or(1.0);
+        self.vertices.iter()
+            .map(|(i, v)| (i.clone(), self.seed.local_to_euclidean(v, radius)))
+            .collect::<HashMap<_, _>>()
     }
 }
