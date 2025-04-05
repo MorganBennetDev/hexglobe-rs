@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use crate::projection::globe::{ExactFace, Globe};
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 

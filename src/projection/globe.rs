@@ -9,6 +9,7 @@ use crate::denominator::ImplicitDenominator;
 use crate::projection::packed_index::PackedIndex;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
+#[derive(Debug)]
 pub enum ExactFace {
     Pentagon([PackedIndex; 5]),
     Hexagon([PackedIndex; 6])
@@ -52,7 +53,8 @@ impl<const N: u32> Globe<N> where
     b:  15..20
     t-t:   wu-vu
     t-um:  vw-wv
-    um-lm: uv-vu, wu-uw
+    um-lm: uv-vu
+    lm-um: wu-uw
     lm-b:  vw-wv
     b-b:   uv-uw
     */
@@ -70,31 +72,37 @@ impl<const N: u32> Globe<N> where
         let t_t = template.wu()
             .zip(template.uv().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((0..5).map(|face| (face, (face + 1) % 5)));
         
         let t_um = template.vw()
             .zip(template.vw().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((0..5).map(|face| (face, face + 5)));
         
         let um_lm = template.uv()
             .zip(template.uv().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((5..10).map(|face| (face, face + 5)));
         
         let lm_um = template.wu()
             .zip(template.wu().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((10..15).map(|face| (face, 5 + face % 5)));
         
         let lm_b = template.vw()
             .zip(template.vw().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((10..15).map(|face| (face, face + 5)));
         
         let b_b = template.uv()
             .zip(template.wu().rev())
             .tuple_windows::<(_, _, _)>()
+            .step_by(2)
             .cartesian_product((15..20).map(|face| (face, 15 + (face + 1) % 5)));
         
         t_t
@@ -154,14 +162,12 @@ impl<const N: u32> Globe<N> where
             .chain(lm)
     }
     
-    fn face_faces_from_template<const M: u32>(template: &SubdividedTriangle<M>) -> impl Iterator<Item = ExactFace> {
-        (0..M)
+    fn face_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {        
+        (0..N)
             .map(|x| template.level_x(ImplicitDenominator::wrap(x)).collect::<Vec<_>>())
             .tuple_windows::<(_, _)>()
             .flat_map(|(r1, r2)|
-                r1.iter()
-                    .skip(1)
-                    .take(r1.len() - 2)
+                r1[1..(r1.len() - 1)].iter()
                     .cloned()
                     .zip(r2)
                     .tuple_windows::<(_, _, _)>()
