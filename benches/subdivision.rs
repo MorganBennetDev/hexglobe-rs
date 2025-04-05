@@ -1,5 +1,5 @@
 
-use hexglobe::subdivision::triangle::SubdividedTriangle;
+use hexglobe::subdivision::subdivided_triangle::SubdividedTriangle;
 
 fn main() {
     // Run registered benchmarks.

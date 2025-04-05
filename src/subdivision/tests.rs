@@ -1,4 +1,4 @@
-use crate::subdivision::triangle::SubdividedTriangle;
+use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
 #[test]
 fn subdivision() {
