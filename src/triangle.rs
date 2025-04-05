@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::Deref;
 use std::rc::Rc;
 use glam::IVec3;
 use itertools::Itertools;
@@ -50,14 +49,14 @@ impl<const N: u32> SubdividedTriangle<N> {
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
             .map(|v| Triangle::new(
                 vertices.get(v).unwrap().clone(),
-                vertices.get(&ImplicitDenominator::wrap(*v.deref() + du)).unwrap().clone(),
-                vertices.get(&ImplicitDenominator::wrap(*v.deref() + dv)).unwrap().clone()
+                vertices.get(&ImplicitDenominator::wrap(v.0 + du)).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(v.0 + dv)).unwrap().clone()
             ));
         let triangles_down = vertices.keys()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
-                vertices.get(&ImplicitDenominator::wrap(*v.deref() - dv)).unwrap().clone(),
-                vertices.get(&ImplicitDenominator::wrap(*v.deref() - du)).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(v.0 - dv)).unwrap().clone(),
+                vertices.get(&ImplicitDenominator::wrap(v.0 - du)).unwrap().clone(),
                 vertices.get(v).unwrap().clone()
             ));
         let triangles = triangles_up.chain(triangles_down)
@@ -74,8 +73,16 @@ impl<const N: u32> SubdividedTriangle<N> {
         &self.triangles[0..Self::N_TRIANGLES_UP]
     }
     
+    pub fn upward_triangle_indices(&self) -> impl Iterator<Item = usize> {
+        0..Self::N_TRIANGLES_UP
+    }
+    
     pub fn downward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
         &self.triangles[Self::N_TRIANGLES_UP..Self::N_TRIANGLES]
+    }
+    
+    pub fn downward_triangle_indices(&self) -> impl Iterator<Item = usize> {
+        Self::N_TRIANGLES_UP..Self::N_TRIANGLES
     }
     
     pub fn u(&self) -> usize {

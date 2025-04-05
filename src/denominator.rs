@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ImplicitDenominator<T, const N: u32>(T);
+pub struct ImplicitDenominator<T, const N: u32>(pub T);
 
 impl<T, const N: u32> ImplicitDenominator<T, N> {
     const DENOMINATOR: u32 = N;
