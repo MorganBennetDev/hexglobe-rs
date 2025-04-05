@@ -45,9 +45,9 @@ impl<const N: u32> SubdividedTriangle<N> {
         let triangles_down = vertices.keys()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
-                vertices.get(&ImplicitDenominator::wrap(v.0 - dv)).unwrap().clone(),
+                vertices.get(v).unwrap().clone(),
                 vertices.get(&ImplicitDenominator::wrap(v.0 - du)).unwrap().clone(),
-                vertices.get(v).unwrap().clone()
+                vertices.get(&ImplicitDenominator::wrap(v.0 - dv)).unwrap().clone(),
             ));
         let triangles = triangles_up.chain(triangles_down)
             .map(|t| Rc::new(t))
@@ -106,25 +106,52 @@ impl<const N: u32> SubdividedTriangle<N> {
     pub fn uv(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.u.z == 0 && t.v.z == 0)
+            .filter(|(_, t)| t.u.z == 0)
             .sorted_by_key(|(_, t)| t.u.y)
             .map(|(i, _)| i)
+            .interleave(
+                self.downward_triangles().iter()
+                    .enumerate()
+                    .filter(|(_, t)| t.w.z == 0)
+                    .sorted_by_key(|(_, t)| t.u.y)
+                    .map(|(i, _)| i + Self::N_TRIANGLES_UP)
+            )
+            .collect::<Vec<_>>()
+            .into_iter()
     }
     
     pub fn vw(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.v.x == 0 && t.w.x == 0)
+            .filter(|(_, t)| t.v.x == 0)
             .sorted_by_key(|(_, t)| t.v.z)
             .map(|(i, _)| i)
+            .interleave(
+                self.downward_triangles().iter()
+                    .enumerate()
+                    .filter(|(_, t)| t.u.x == 0)
+                    .sorted_by_key(|(_, t)| t.v.z)
+                    .map(|(i, _)| i + Self::N_TRIANGLES_UP)
+            )
+            .collect::<Vec<_>>()
+            .into_iter()
     }
     
     pub fn wu(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.u.y == 0 && t.w.y == 0)
+            .filter(|(_, t)| t.u.y == 0)
             .sorted_by_key(|(_, t)| t.w.x)
             .map(|(i, _)| i)
+            .interleave(
+                self.downward_triangles().iter()
+                    .enumerate()
+                    .filter(|(_, t)| t.v.y == 0)
+                    .sorted_by_key(|(_, t)| t.w.x)
+                    .map(|(i, _)| i + Self::N_TRIANGLES_UP)
+            )
+            .collect::<Vec<_>>()
+            .into_iter()
     }
     
     // Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
