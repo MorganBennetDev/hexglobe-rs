@@ -6,8 +6,7 @@ const V: usize = 12;
 const E: usize = 30;
 const F: usize = 20;
 
-fn face_creation_test_hexagons<const N: u32>() where
-    [(); (3 * N) as usize] : Sized {
+fn face_creation_test_hexagons<const N: u32>() {
     let template = SubdividedTriangle::<N>::new();
     let edge_faces = ExactGlobe::<N>::edge_faces_from_template(&template).count();
     let face_faces = ExactGlobe::<N>::face_faces_from_template(&template).count();
@@ -33,8 +32,7 @@ fn face_creation_test_hexagons<const N: u32>() where
     assert_eq!(pentagon, None, "Found pentagon within face for icosahedron with {:?} subdivisions.", N);
 }
 
-fn face_creation_test_pentagons<const N: u32>() where
-    [(); (3 * N) as usize] : Sized {
+fn face_creation_test_pentagons<const N: u32>() {
     let template = SubdividedTriangle::<N>::new();
     let vertex_faces = ExactGlobe::<N>::vertex_faces_from_template(&template).count();
     
@@ -50,8 +48,7 @@ fn face_creation_test_pentagons<const N: u32>() where
     assert_eq!(hexagon, None, "Found hexagonal face lying on a vertex for icosahedron with {:?} subdivisions.", N);
 }
 
-fn basic_count_test<const N: u32>() where
-    [(); (3 * N) as usize] : Sized {
+fn basic_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     let n_vertices = F * (N * N) as usize;
     let n_faces = V + E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
@@ -60,8 +57,7 @@ fn basic_count_test<const N: u32>() where
     assert_eq!(globe.faces.len(), n_faces, "Incorrect number of faces in icosahedron with {:?} subdivisions.", N);
 }
 
-fn hexagon_count_test<const N: u32>() where
-    [(); (3 * N) as usize] : Sized {
+fn hexagon_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     let expected = E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     
@@ -73,8 +69,7 @@ fn hexagon_count_test<const N: u32>() where
     assert_eq!(hexagons.len(), expected, "Incorrect number of hexagons in icosahedron with {:?} subdivisions.", N);
 }
 
-fn pentagon_count_test<const N: u32>() where
-    [(); (3 * N) as usize] : Sized {
+fn pentagon_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     
     let (_, pentagons): (Vec<_>, Vec<_>) = globe.faces.iter()

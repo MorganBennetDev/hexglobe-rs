@@ -1,4 +1,5 @@
 use std::f32::consts::{FRAC_PI_3, FRAC_PI_6};
+use std::ops::Deref;
 use std::rc::Rc;
 use glam::{IVec3, Vec3};
 use crate::denominator::ImplicitDenominator;
@@ -10,14 +11,12 @@ Where phi is the Golden ratio
 */
 const FRAC_K_3_32: f32 = 0.5535743588970452515085327300892685200;
 
-pub struct Seed<const N: u32> where
-    [(); (3 * N) as usize] : Sized {
-    vertices: Vec<Rc<ImplicitDenominator<IVec3, {3 * N}>>>,
-    faces: Vec<Triangle<ImplicitDenominator<IVec3, {3 * N}>>>,
+pub struct Seed<const N: u32> {
+    vertices: Vec<Rc<ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>>>,
+    faces: Vec<Triangle<ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>>>,
 }
 
-impl<const N: u32> Seed<N> where
-    [(); (3 * N) as usize] : Sized {
+impl<const N: u32> Seed<N> {
     /*
     Outputs the faces of a regular icosahedron in spherical coordinates.
     Source for Cartesian coordinates and faces: github.com/virtualritz/polyhedron-ops
@@ -40,7 +39,11 @@ impl<const N: u32> Seed<N> where
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
                 // Factor of 3 in denominator is necessary for centroid calculations
-                Rc::new(ImplicitDenominator::<IVec3, {3 * N }>::wrap(IVec3::new($x * denominator, $y * denominator, $z / 90)))
+                Rc::new(ImplicitDenominator::<_, 3>::wrap(
+                    ImplicitDenominator::<IVec3, N>::wrap(
+                        IVec3::new($x * denominator, $y * denominator, $z / 90))
+                    )
+                )
             };
         }
         let vertices = vec![
@@ -97,10 +100,10 @@ impl<const N: u32> Seed<N> where
         }
     }
     
-    pub fn to_local(&self, f: usize, v: ImplicitDenominator<IVec3, {3 * N }>) -> ImplicitDenominator<IVec3, {3 * N }> {
+    pub fn to_local(&self, f: usize, v: ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>) -> ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3> {
         let face = &self.faces[f];
         
-        ImplicitDenominator::wrap((face.u.0 * v.x + face.v.0 * v.y + face.w.0 * v.z) / 3)
+        (face.u.deref() * v.as_ref()[0] + face.v.deref() * v.as_ref()[1] + face.w.deref() * v.as_ref()[2]) / 3
     }
     
     /*
@@ -108,9 +111,9 @@ impl<const N: u32> Seed<N> where
     y is coefficient on k in phi
     z is coefficient on pi/2 in theta.
     */
-    pub fn local_to_euclidean(&self, v: &ImplicitDenominator<IVec3, {3 * N}>, radius: f32) -> Vec3 {
-        let theta = (v.z as f32 / N as f32) * FRAC_PI_6;
-        let phi = v.x as f32 * FRAC_PI_3 / N as f32 + v.y as f32 / N as f32 * FRAC_K_3_32;
+    pub fn local_to_euclidean(&self, v: &ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>, radius: f32) -> Vec3 {
+        let theta = (v.as_ref()[2] as f32 / N as f32) * FRAC_PI_6;
+        let phi = v.as_ref()[0] as f32 * FRAC_PI_3 / N as f32 + v.as_ref()[1] as f32 / N as f32 * FRAC_K_3_32;
         
         Vec3::new(
             theta.sin() * phi.cos(),

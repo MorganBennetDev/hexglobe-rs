@@ -16,21 +16,20 @@ pub enum ExactFace {
     Hexagon([PackedIndex; 6])
 }
 
-pub struct ExactGlobe<const N: u32> where
-    [(); (3 * N) as usize] : Sized {
+pub struct ExactGlobe<const N: u32> {
     seed: Seed<N>,
-    pub vertices: HashMap<PackedIndex, ImplicitDenominator<IVec3, {3 * N}>>,
+    pub vertices: HashMap<PackedIndex, ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>>,
     pub faces: Vec<ExactFace>,
 }
 
-impl<const N: u32> ExactGlobe<N> where
-    [(); (3 * N) as usize] : Sized {
+impl<const N: u32> ExactGlobe<N> {
     pub fn new() -> Self {
         let template = SubdividedTriangle::<N>::new();
         let seed = Seed::<N>::icosahedron();
         
         let vertices = template.triangles.iter()
-            .map(|t| ImplicitDenominator::<_, {3 * N}>::wrap(t.u.0 + t.v.0 + t.w.0))
+            .cloned()
+            .map(|t| ImplicitDenominator::<_, 3>::wrap(t.u.deref() + t.v.deref() + t.w.deref()))
             .enumerate()
             .cartesian_product(0..20)
             .map(|((i, v), face)| (
