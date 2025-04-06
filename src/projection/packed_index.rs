@@ -1,6 +1,7 @@
+use std::fmt::{Debug, Formatter};
 use petgraph::adj::IndexType;
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PackedIndex(usize);
 
 impl PackedIndex {
@@ -14,6 +15,12 @@ impl PackedIndex {
     
     pub const fn subdivision(&self) -> usize {
         self.0 >> 5
+    }
+}
+
+impl Debug for PackedIndex {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}:{:?}", self.face(), self.subdivision())
     }
 }
 
