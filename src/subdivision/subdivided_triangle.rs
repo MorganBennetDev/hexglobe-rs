@@ -77,24 +77,29 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     // Iterator of indices of triangles with at least one vertex whose x coordinate is x sorted by increasing y
     pub fn level_x(&self, x: ImplicitDenominator<u32, N>) -> impl Iterator<Item = usize> {
-        // let length = (N - x.0) as usize;
-        // let start = Self::N_TRIANGLES_UP + 1 - length * (length + 1) / 2;
-        // 
-        // (start..(start + length + 1)).interleave(
-        //     ((start + Self::N_TRIANGLES_UP)..(start + Self::N_TRIANGLES_UP + length))
-        // )
-        if x.0 == N {
-            vec![Self::N_TRIANGLES_UP - 1].into_iter()
-        } else {
-            let length = (N - x.0) as usize;
-            let start = Self::N_TRIANGLES_UP - length * (length + 1) / 2;
-            
-            (start..(start + length)).interleave(
-                (start + Self::N_TRIANGLES_UP)..(start + Self::N_TRIANGLES_UP + length - 1)
+        // This is efficient but very buggy and I can't be bothered to fix it right now.
+        // if x.0 == N {
+        //     vec![Self::N_TRIANGLES_UP - 1].into_iter()
+        // } else {
+        //     let length = (N - x.0) as usize;
+        //     let start = Self::N_TRIANGLES_UP - length * (length + 1) / 2;
+        //     
+        //     (start..(start + length)).interleave(
+        //         (start + Self::N_TRIANGLES_UP)..(start + Self::N_TRIANGLES_UP + length - 1)
+        //     )
+        //         .collect::<Vec<_>>()
+        //         .into_iter()
+        // }
+        self.upward_triangles().iter()
+            .enumerate()
+            .filter(move |(_, t)| t.v.x as u32 == x.0)
+            .map(|(i, _)| i)
+            .interleave(
+                self.downward_triangles().iter()
+                    .enumerate()
+                    .filter(move |(_, t)| t.u.x as u32 == x.0)
+                    .map(|(i, _)| i + Self::N_TRIANGLES_UP)
             )
-                .collect::<Vec<_>>()
-                .into_iter()
-        }
     }
     
     pub fn u(&self) -> usize {
