@@ -10,6 +10,13 @@ glam = "0.30.1"
 
 [dev-dependencies]
 divan = "0.1.17"
+bevy = "0.15.3"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev.package.bevy]
+features = ["dynamic_linking"]
 
 [[bench]]
 name = "subdivision"
@@ -18,3 +25,7 @@ harness = false
 [[bench]]
 name = "projection"
 harness = false
+
+[[example]]
+name = "bevy"
+path = "examples/bevy.rs"
