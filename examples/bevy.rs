@@ -8,11 +8,13 @@ use bevy::{
         render_resource::PrimitiveTopology,
     },
 };
+use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use hexglobe::projection::globe::{ExactFace, ExactGlobe};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
         .run();
 }
@@ -41,6 +43,7 @@ fn setup(
     // camera
     commands.spawn((
         Camera3d::default(),
+        PanOrbitCamera::default(),
         Transform::from_xyz(-1.5, 2.5, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }

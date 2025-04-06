@@ -11,6 +11,7 @@ glam = "0.30.1"
 [dev-dependencies]
 divan = "0.1.17"
 bevy = "0.15.3"
+bevy_panorbit_camera = "0.25.0"
 
 [profile.dev.package."*"]
 opt-level = 3
