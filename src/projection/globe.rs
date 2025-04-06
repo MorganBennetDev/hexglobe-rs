@@ -30,9 +30,7 @@ impl<const N: u32> ExactGlobe<N> where
         let seed = Seed::<N>::icosahedron();
         
         let vertices = template.triangles.iter()
-            .map(|t| ImplicitDenominator::<_, {3 * N}>::wrap(
-                t.u.deref().deref() + t.v.deref().deref() + t.w.deref().deref()
-            ))
+            .map(|t| ImplicitDenominator::<_, {3 * N}>::wrap(t.u.0 + t.v.0 + t.w.0))
             .enumerate()
             .cartesian_product(0..20)
             .map(|((i, v), face)| (
@@ -122,9 +120,9 @@ impl<const N: u32> ExactGlobe<N> where
                 PackedIndex::new(face_a, a0),
                 PackedIndex::new(face_a, a1),
                 PackedIndex::new(face_a, a2),
-                PackedIndex::new(face_b + 5, b2),
-                PackedIndex::new(face_b + 5, b1),
-                PackedIndex::new(face_b + 5, b0),
+                PackedIndex::new(face_b, b2),
+                PackedIndex::new(face_b, b1),
+                PackedIndex::new(face_b, b0),
             ]))
     }
     
@@ -180,14 +178,16 @@ impl<const N: u32> ExactGlobe<N> where
                     .tuple_windows::<(_, _, _)>()
                     .step_by(2)
                     .cartesian_product(0..20)
-                    .map(|(((a0, b0), (a1, b1), (a2, b2)), face)| ExactFace::Hexagon([
-                        PackedIndex::new(face, a0),
-                        PackedIndex::new(face, a1),
-                        PackedIndex::new(face, a2),
-                        PackedIndex::new(face, b2),
-                        PackedIndex::new(face, b1),
-                        PackedIndex::new(face, b0)
-                    ]))
+                    .map(|(((a0, b0), (a1, b1), (a2, b2)), face)| {
+                        ExactFace::Hexagon([
+                            PackedIndex::new(face, a0),
+                            PackedIndex::new(face, a1),
+                            PackedIndex::new(face, a2),
+                            PackedIndex::new(face, b2),
+                            PackedIndex::new(face, b1),
+                            PackedIndex::new(face, b0)
+                        ])
+                    })
                     .collect::<Vec<_>>()
             )
     }
