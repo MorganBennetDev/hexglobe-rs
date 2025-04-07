@@ -40,7 +40,7 @@ impl<const N: u32> Seed<N> {
             ($x: expr, $y: expr, $z: expr) => {
                 // Factor of 3 in denominator is necessary for centroid calculations
                 Rc::new(ImplicitDenominator::<_, 3>::wrap(
-                    ImplicitDenominator::<IVec3, N>::wrap(
+                    ImplicitDenominator::<_, N>::wrap(
                         IVec3::new($x * denominator, $y * denominator, $z / 90))
                     )
                 )
@@ -103,7 +103,7 @@ impl<const N: u32> Seed<N> {
     pub fn to_local(&self, f: usize, v: ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>) -> ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3> {
         let face = &self.faces[f];
         
-        (face.u.deref() * v.as_ref()[0] + face.v.deref() * v.as_ref()[1] + face.w.deref() * v.as_ref()[2]) / 3
+        face.u.deref() * v.x + face.v.deref() * v.y + face.w.deref() * v.z
     }
     
     /*
@@ -112,8 +112,8 @@ impl<const N: u32> Seed<N> {
     z is coefficient on pi/2 in theta.
     */
     pub fn local_to_euclidean(&self, v: &ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>, radius: f32) -> Vec3 {
-        let theta = (v.as_ref()[2] as f32 / N as f32) * FRAC_PI_6;
-        let phi = v.as_ref()[0] as f32 * FRAC_PI_3 / N as f32 + v.as_ref()[1] as f32 / N as f32 * FRAC_K_3_32;
+        let theta = (v.z as f32 / N as f32) * FRAC_PI_6;
+        let phi = v.x as f32 * FRAC_PI_3 / N as f32 + v.y as f32 / N as f32 * FRAC_K_3_32;
         
         Vec3::new(
             theta.sin() * phi.cos(),

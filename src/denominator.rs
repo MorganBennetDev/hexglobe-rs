@@ -1,8 +1,8 @@
 use std::fmt::{Debug, Formatter};
-use std::ops::{Add, Div, Mul};
+use std::ops::{Add, Deref, Div, Mul, Sub};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ImplicitDenominator<T, const N: u32>(pub T);
+pub struct ImplicitDenominator<T, const N: u32>(T);
 
 impl<T, const N: u32> ImplicitDenominator<T, N> {
     pub fn new(value: T) -> Self {
@@ -10,16 +10,21 @@ impl<T, const N: u32> ImplicitDenominator<T, N> {
     }
 }
 
+impl<T, const N: u32> Deref for ImplicitDenominator<T, N> {
+    type Target = T;
+    
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl<T, const N: u32> ImplicitDenominator<T, N> {
     pub const fn wrap(v: T) -> Self {
         Self(v)
     }
-}
-
-impl<T, U, const N: u32> AsRef<U> for ImplicitDenominator<T, N> where
-    T : AsRef<U> {
-    fn as_ref(&self) -> &U {
-        self.0.as_ref()
+    
+    pub const fn inner(&self) -> T where T: Copy {
+        self.0
     }
 }
 
@@ -65,6 +70,44 @@ impl<'a, 'b, T, U, const N: u32> Add<&'a ImplicitDenominator<U, N>> for &'b Impl
     
     fn add(self, rhs: &'a ImplicitDenominator<U, N>) -> Self::Output {
         ImplicitDenominator(self.0.clone() + rhs.0.clone())
+    }
+}
+
+impl<T, U, const N: u32> Sub<ImplicitDenominator<U, N>> for ImplicitDenominator<T, N> where
+    T : Sub<U> {
+    type Output = ImplicitDenominator<<T as Sub<U>>::Output, N>;
+    
+    fn sub(self, rhs: ImplicitDenominator<U, N>) -> Self::Output {
+        ImplicitDenominator(self.0 - rhs.0)
+    }
+}
+
+impl<'a, T, U, const N: u32> Sub<&'a ImplicitDenominator<U, N>> for ImplicitDenominator<T, N> where
+    T : Sub<U>,
+    U : Clone {
+    type Output = ImplicitDenominator<<T as Sub<U>>::Output, N>;
+    
+    fn sub(self, rhs: &'a ImplicitDenominator<U, N>) -> Self::Output {
+        ImplicitDenominator(self.0 - rhs.0.clone())
+    }
+}
+
+impl<'a, T, U, const N: u32> Sub<ImplicitDenominator<U, N>> for &'a ImplicitDenominator<T, N> where
+    T : Sub<U> + Clone {
+    type Output = ImplicitDenominator<<T as Sub<U>>::Output, N>;
+    
+    fn sub(self, rhs: ImplicitDenominator<U, N>) -> Self::Output {
+        ImplicitDenominator(self.0.clone() - rhs.0)
+    }
+}
+
+impl<'a, 'b, T, U, const N: u32> Sub<&'a ImplicitDenominator<U, N>> for &'b ImplicitDenominator<T, N> where
+    T : Sub<U> + Clone,
+    U : Clone {
+    type Output = ImplicitDenominator<<T as Sub<U>>::Output, N>;
+    
+    fn sub(self, rhs: &'a ImplicitDenominator<U, N>) -> Self::Output {
+        ImplicitDenominator(self.0.clone() - rhs.0.clone())
     }
 }
 
