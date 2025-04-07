@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Deref, Div, Mul, Sub};
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ImplicitDenominator<T, const N: u32>(T);
 
 impl<T, const N: u32> ImplicitDenominator<T, N> {

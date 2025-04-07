@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_3, FRAC_PI_6, PI};
+use std::f32::consts::{FRAC_PI_3, PI};
 use std::ops::Deref;
 use std::rc::Rc;
 use glam::{IVec3, Vec3};
