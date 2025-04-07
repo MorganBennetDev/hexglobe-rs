@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_3, PI};
+use std::f32::consts::{FRAC_PI_2, PI};
 use std::ops::Deref;
 use std::rc::Rc;
 use glam::{IVec3, Vec3};
@@ -121,7 +121,7 @@ impl<const N: u32> Seed<N> {
             Rational32::new(v.y, (M * N) as i32).to_f32().unwrap(),
             Rational32::new(v.z, (M * N) as i32).to_f32().unwrap()
         );
-        let theta = z * FRAC_PI_3;
+        let theta = z * FRAC_PI_2;
         let phi = x * PI + y * K_32;
         println!("{:?},{:?}", theta, phi);
         
