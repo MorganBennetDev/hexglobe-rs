@@ -168,8 +168,8 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     fn face_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
-        (0..N)
-            .map(|x| template.level_x(ImplicitDenominator::wrap(x)).collect::<Vec<_>>())
+        (0..N as usize)
+            .map(|i| template.row(i).collect::<Vec<_>>())
             .tuple_windows::<(_, _)>()
             .flat_map(|(r1, r2)|
                 r1[1..(r1.len() - 1)].iter()

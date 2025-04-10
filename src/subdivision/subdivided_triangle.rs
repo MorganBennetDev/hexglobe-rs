@@ -19,6 +19,7 @@ impl<const N: u32> SubdividedTriangle<N> {
     pub const N_TRIANGLES: usize = (N * N) as usize;
     pub const N_VERTICES: usize = ((N + 1) * (N + 2) / 2) as usize;
     const N_TRIANGLES_UP: usize = (N * (N + 1) / 2) as usize;
+    const N_TRIANGLES_DOWN: usize = (N * (N - 1) / 2) as usize;
     
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
@@ -81,34 +82,32 @@ impl<const N: u32> SubdividedTriangle<N> {
         Self::N_TRIANGLES_UP..Self::N_TRIANGLES
     }
     
+    fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
+        if i >= N as usize {
+            0..0
+        } else {
+            let k = N as usize - i;
+            let start = Self::N_TRIANGLES_UP - k * (k + 1) / 2;
+            let end = start + k;
+            start..end
+        }
+    }
+    
+    fn downward_row(&self, i: usize) -> impl Iterator<Item = usize> {
+        if i >= N as usize - 1 {
+            0..0
+        } else {
+            let k = N as usize - 1 - i;
+            let start = Self::N_TRIANGLES_UP + Self::N_TRIANGLES_DOWN - k * (k + 1) / 2;
+            let end = start + k;
+            start..end
+        }
+    }
+    
     // Iterator of indices of triangles with at least one vertex whose x coordinate is x sorted by increasing y
-    pub fn level_x(&self, x: ImplicitDenominator<u32, N>) -> impl Iterator<Item = usize> {
-        // This is efficient but very buggy and I can't be bothered to fix it right now.
-        // if x.0 == N {
-        //     vec![Self::N_TRIANGLES_UP - 1].into_iter()
-        // } else {
-        //     let length = (N - x.0) as usize;
-        //     let start = Self::N_TRIANGLES_UP - length * (length + 1) / 2;
-        //     
-        //     (start..(start + length)).interleave(
-        //         (start + Self::N_TRIANGLES_UP)..(start + Self::N_TRIANGLES_UP + length - 1)
-        //     )
-        //         .collect::<Vec<_>>()
-        //         .into_iter()
-        // }
-        let x_v = x.inner();
-        let a = self.upward_triangles().iter()
-            .enumerate()
-            .filter(move |(_, t)| t.v.x as u32 == x_v)
-            .map(|(i, _)| i)
-            .interleave(
-                self.downward_triangles().iter()
-                    .enumerate()
-                    .filter(move |(_, t)| t.u.x as u32 == x_v)
-                    .map(|(i, _)| i + Self::N_TRIANGLES_UP)
-            );
-        println!("{:?} | {:?}", x_v, a.clone().collect::<Vec<_>>());
-        a
+    pub fn row(&self, i: usize) -> impl Iterator<Item = usize> {        
+        self.upward_row(i)
+            .interleave(self.downward_row(i))
     }
     
     pub fn u(&self) -> usize {
