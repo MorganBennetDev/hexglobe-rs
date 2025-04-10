@@ -24,7 +24,6 @@ impl<const N: u32> SubdividedTriangle<N> {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
         let axis = 0..(N + 1);
-        // Vertices are in ascending lexicographic order
         let vertices = axis.clone()
             .cartesian_product(axis.clone())
             .cartesian_product(axis.clone())
@@ -33,16 +32,23 @@ impl<const N: u32> SubdividedTriangle<N> {
             .map(|v| (v.clone(), Rc::new(v)))
             .collect::<HashMap<_, _>>();
         
+        // Vertices are in ascending lexicographic order
+        let keys = vertices.keys()
+            .sorted_by_key(|u| (u.x, u.y, u.z))
+            .cloned()
+            .collect::<Vec<_>>();
+        
         let du = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 1, 0));
         let dv = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 0, 1));
-        let triangles_up = vertices.keys()
+        
+        let triangles_up = keys.iter()
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
             .map(|v| Triangle::new(
                 vertices.get(v).unwrap().clone(),
                 vertices.get(&(v + &du)).unwrap().clone(),
                 vertices.get(&(v + &dv)).unwrap().clone()
             ));
-        let triangles_down = vertices.keys()
+        let triangles_down = keys.iter()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
                 vertices.get(v).unwrap().clone(),
@@ -91,7 +97,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         //         .into_iter()
         // }
         let x_v = x.inner();
-        self.upward_triangles().iter()
+        let a = self.upward_triangles().iter()
             .enumerate()
             .filter(move |(_, t)| t.v.x as u32 == x_v)
             .map(|(i, _)| i)
@@ -100,7 +106,9 @@ impl<const N: u32> SubdividedTriangle<N> {
                     .enumerate()
                     .filter(move |(_, t)| t.u.x as u32 == x_v)
                     .map(|(i, _)| i + Self::N_TRIANGLES_UP)
-            )
+            );
+        println!("{:?} | {:?}", x_v, a.clone().collect::<Vec<_>>());
+        a
     }
     
     pub fn u(&self) -> usize {
