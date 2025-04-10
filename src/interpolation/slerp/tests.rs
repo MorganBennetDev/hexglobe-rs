@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use assert2::check;
 use ntest::timeout;
 use glam::Vec3;
@@ -5,7 +6,6 @@ use crate::interpolation::slerp::{slerp_n, sphere_exp, sphere_ln};
 
 #[test]
 fn exp() {
-    std::panic::set_hook(Box::new(|_| {}));
     let q = Vec3::new(2.0, 1.0, -3.0).normalize();
     let v = q.any_orthogonal_vector();
     
@@ -19,7 +19,6 @@ fn exp() {
 
 #[test]
 fn ln() {
-    std::panic::set_hook(Box::new(|_| {}));
     let v = Vec3::new(1.0, 2.0, 1.0).normalize();
     let q = Vec3::new(2.0, 1.0, -3.0).normalize();
     let d = v - q;
@@ -33,7 +32,6 @@ fn ln() {
 
 #[test]
 fn ln_exp() {
-    std::panic::set_hook(Box::new(|_| {}));
     let q = Vec3::new(2.0, 1.0, -3.0).normalize();
     let v = q.any_orthogonal_vector();
     
@@ -51,10 +49,45 @@ fn ln_exp() {
 #[test]
 #[timeout(1)]
 fn halting() {
-    std::panic::set_hook(Box::new(|_| {}));
     let u = Vec3::new(1.0 / 3.0f32.sqrt(), 1.0 / 3.0f32.sqrt(), 1.0 / 3.0f32.sqrt());
     let v = Vec3::new(1.0 / 3.0f32.sqrt(), -1.0 / 3.0f32.sqrt(), 1.0 / 3.0f32.sqrt());
     let w = Vec3::new(1.0 / 3.0f32.sqrt(), 1.0 / 3.0f32.sqrt(), -1.0 / 3.0f32.sqrt());
     
     slerp_n(&[0.2, 0.3, 0.5], &[u, v, w]);
+}
+
+fn area(a: f32, b: f32, c: f32) -> f32 {
+    // Spherical law of cosines
+    let angle_a = ((a.cos() - b.cos() * c.cos()) / (b.sin() * c.sin())).acos();
+    let angle_b = ((b.cos() - a.cos() * c.cos()) / (a.sin() * c.sin())).acos();
+    let angle_c = ((c.cos() - a.cos() * b.cos()) / (a.sin() * b.sin())).acos();
+    
+    angle_a + angle_b + angle_c - PI
+}
+
+#[test]
+fn slerp() {
+    let u = Vec3::new(1.0, 2.0, 3.0).normalize();
+    let v = Vec3::new(3.0, 2.0, 1.0).normalize();
+    let w = Vec3::new(2.0, 1.0, 3.0).normalize();
+    
+    let w0 = 0.2;
+    let w1 = 0.3;
+    let w2 = 0.5;
+    let p = slerp_n(&[w0, w1, w2], &[u, v, w]);
+    
+    let a = v.angle_between(w);
+    let b = w.angle_between(u);
+    let c = u.angle_between(v);
+    
+    let p_a = p.angle_between(u);
+    let p_b = p.angle_between(v);
+    let p_c = p.angle_between(w);
+    
+    let t = area(a, b, c);
+    
+    check!((area(a, p_b, p_c) - t * w0).abs() < 1.0e-2, "Ratio of area to total area is incorrect.");
+    check!((area(b, p_a, p_c) - t * w1).abs() < 1.0e-2, "Ratio of area to total area is incorrect.");
+    check!((area(c, p_a, p_b) - t * w2).abs() < 1.0e-2, "Ratio of area to total area is incorrect.");
+    
 }
