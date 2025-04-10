@@ -48,7 +48,7 @@ fn setup(
 }
 
 fn create_mesh() -> Mesh {
-    let globe = ExactGlobe::<3>::new();
+    let globe = ExactGlobe::<1>::new();
     let vertices_f32 = globe.vertices_f32(None);
     let vertex_data = vertices_f32.iter()
         .enumerate()

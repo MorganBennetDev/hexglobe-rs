@@ -6,6 +6,7 @@ use std::ops::Deref;
 use glam::{IVec3, Vec3};
 use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
+use crate::interpolation::slerp::slerp_3;
 use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
@@ -34,7 +35,7 @@ impl<const N: u32> ExactGlobe<N> {
             .cartesian_product(0..20)
             .map(|((i, v), face)| (
                 PackedIndex::new(face, i),
-                seed.to_local(face, v)
+                v
             ))
             .collect::<HashMap<_, _>>();
         
@@ -157,8 +158,8 @@ impl<const N: u32> ExactGlobe<N> {
                 PackedIndex::new(face, template.v()),
                 PackedIndex::new(face - 5, template.u()),
                 PackedIndex::new(10 + (face + 4) % 5, template.w()),
-                PackedIndex::new(15 + (face + 4) % 5, template.u()),
-                PackedIndex::new(face + 5, template.u()),
+                PackedIndex::new(15 + (face + 4) % 5, template.v()),
+                PackedIndex::new(face + 5, template.w()),
             ]));
         
         tb
@@ -193,8 +194,22 @@ impl<const N: u32> ExactGlobe<N> {
     
     pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
         let radius = r.unwrap_or(1.0);
+        
         self.vertices.iter()
-            .map(|(i, v)| (i.clone(), self.seed.local_to_euclidean(v, radius)))
+            .map(|(i, v)| {
+                let face = self.seed.get_face(i.face());
+                let (x, y, z) = (
+                    v.x as f32 / (3 * N) as f32,
+                    v.y as f32 / (3 * N) as f32,
+                    v.z as f32 / (3 * N) as f32
+                );
+                
+                (i.clone(), slerp_3(
+                    x, *face.u.deref(),
+                    y, *face.v.deref(),
+                    z, *face.w.deref()
+                ) * radius)
+            })
             .collect::<HashMap<_, _>>()
     }
 }

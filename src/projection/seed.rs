@@ -1,20 +1,10 @@
-use std::f32::consts::{FRAC_PI_2, PI};
-use std::ops::Deref;
 use std::rc::Rc;
-use glam::{IVec3, Vec3};
-use num::{Rational32, ToPrimitive};
-use crate::denominator::ImplicitDenominator;
+use glam::Vec3;
 use crate::subdivision::triangle::Triangle;
 
-/*
-acos(phi/sqrt(phi^2 + 1))
-Where phi is the Golden ratio
-*/
-const K_32: f32 = 0.5535743588970452515085327300892685200;
-
 pub struct Seed<const N: u32> {
-    vertices: Vec<Rc<IVec3>>,
-    faces: Vec<Triangle<IVec3>>,
+    pub vertices: Vec<Rc<Vec3>>,
+    pub faces: Vec<Triangle<Vec3>>,
 }
 
 impl<const N: u32> Seed<N> {
@@ -36,29 +26,29 @@ impl<const N: u32> Seed<N> {
      */
     pub fn icosahedron() -> Self {
         #[allow(unused_variables)]
-        let denominator = 3 * N as i32;
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
-                // Factor of 3 in denominator is necessary for centroid calculations
                 Rc::new(
-                    IVec3::new($x, $y, $z / 90)
+                    Vec3::new($x, $y, $z).normalize()
                 )
             };
         }
         
+        let c0 = 0.809_017;
+        
         let vertices = vec![
-            vertex!( 0,  1, 0 ),   // 0
-            vertex!( 1, -1, 0 ),   // 1
-            vertex!( 0,  1, 180 ), // 2
-            vertex!( 1, -1, 180 ), // 3
-            vertex!( 0,  1, 90 ),  // 4
-            vertex!( 0, -1, 90 ),  // 5
-            vertex!( 1, -1, 90 ),  // 6
-            vertex!(-1,  1, 90 ),  // 7
-            vertex!( 0,  1, 90 ),  // 8
-            vertex!( 1, -1, 270 ), // 9
-            vertex!( 0,  1, 270 ), // 10
-            vertex!( 1, -1, 270 ), // 11
+            vertex!(0.5, 0.0, c0),
+            vertex!(0.5, 0.0, -c0),
+            vertex!(-0.5, 0.0, c0),
+            vertex!(-0.5, 0.0, -c0),
+            vertex!(c0, 0.5, 0.0),
+            vertex!(c0, -0.5, 0.0),
+            vertex!(-c0, 0.5, 0.0),
+            vertex!(-c0, -0.5, 0.0),
+            vertex!(0.0, c0, 0.5),
+            vertex!(0.0, c0, -0.5),
+            vertex!(0.0, -c0, 0.5),
+            vertex!(0.0, -c0, -0.5),
         ];
         
         macro_rules! triangle {
@@ -100,35 +90,7 @@ impl<const N: u32> Seed<N> {
         }
     }
     
-    pub fn to_local(&self, f: usize, v: ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>) -> ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3> {
-        let face = &self.faces[f];
-        
-        ImplicitDenominator::wrap(
-            ImplicitDenominator::wrap(
-                face.u.deref() * v.x + face.v.deref() * v.y + face.w.deref() * v.z
-            )
-        )
-    }
-    
-    /*
-    x is coefficient on pi in phi.
-    y is coefficient on k in phi
-    z is coefficient on pi/2 in theta.
-    */
-    pub fn local_to_euclidean<const M: u32>(&self, v: &ImplicitDenominator<ImplicitDenominator<IVec3, N>, M>, radius: f32) -> Vec3 {
-        let (x, y, z) = (
-            Rational32::new(v.x, (M * N) as i32).to_f32().unwrap(),
-            Rational32::new(v.y, (M * N) as i32).to_f32().unwrap(),
-            Rational32::new(v.z, (M * N) as i32).to_f32().unwrap()
-        );
-        let theta = z * FRAC_PI_2;
-        let phi = x * PI + y * K_32;
-        println!("{:?},{:?}", theta, phi);
-        
-        Vec3::new(
-            theta.sin() * phi.cos(),
-            theta.sin() * phi.sin(),
-            theta.cos()
-        ) * radius
+    pub fn get_face(&self, face: usize) -> Triangle<Vec3> {
+        self.faces[face].clone()
     }
 }
