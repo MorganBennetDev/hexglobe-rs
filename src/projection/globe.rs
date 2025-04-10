@@ -2,9 +2,8 @@
 mod tests;
 
 use std::collections::HashMap;
-use glam::{IVec3, Vec3};
+use glam::Vec3;
 use itertools::Itertools;
-use crate::denominator::ImplicitDenominator;
 use crate::interpolation::slerp::slerp_3;
 use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
@@ -18,31 +17,21 @@ pub enum ExactFace {
 
 pub struct ExactGlobe<const N: u32> {
     seed: Seed<N>,
-    pub vertices: HashMap<PackedIndex, ImplicitDenominator<ImplicitDenominator<IVec3, N>, 3>>,
+    subdivision: SubdividedTriangle<N>,
     pub faces: Vec<ExactFace>,
 }
 
 impl<const N: u32> ExactGlobe<N> {
     pub fn new() -> Self {
-        let template = SubdividedTriangle::<N>::new();
+        let subdivision = SubdividedTriangle::<N>::new();
         let seed = Seed::<N>::icosahedron();
         
-        let vertices = template.triangles()
-            .map(|t| ImplicitDenominator::<_, 3>::wrap(t.u + t.v + t.w))
-            .enumerate()
-            .cartesian_product(0..20)
-            .map(|((i, v), face)| (
-                PackedIndex::new(face, i),
-                v
-            ))
-            .collect::<HashMap<_, _>>();
-        
-        let faces = Self::faces_from_template(&template)
+        let faces = Self::faces_from_template(&subdivision)
             .collect::<Vec<_>>();
         
         Self {
             seed,
-            vertices,
+            subdivision,
             faces
         }
     }
@@ -193,16 +182,18 @@ impl<const N: u32> ExactGlobe<N> {
     pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
         let radius = r.unwrap_or(1.0);
         
-        self.vertices.iter()
-            .map(|(i, v)| {
-                let face = self.seed.get_face(i.face());
+        self.subdivision.vertices.iter()
+            .enumerate()
+            .cartesian_product(0..20)
+            .map(|((i, v), f)| {
+                let face = self.seed.get_face(f);
                 let (x, y, z) = (
                     v.x as f32 / (3 * N) as f32,
                     v.y as f32 / (3 * N) as f32,
                     v.z as f32 / (3 * N) as f32
                 );
                 
-                (i.clone(), slerp_3(
+                (PackedIndex::new(f, i), slerp_3(
                     x, face.u,
                     y, face.v,
                     z, face.w
