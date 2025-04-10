@@ -212,4 +212,53 @@ impl<const N: u32> ExactGlobe<N> {
             })
             .collect::<HashMap<_, _>>()
     }
+    
+    pub fn mesh_vertices(&self, r: Option<f32>) -> Vec<[f32; 3]> {
+        let vertices = self.vertices_f32(r);
+        
+        self.faces.iter()
+            .flat_map(|f|
+                match f {
+                    ExactFace::Pentagon(v) => &v[..],
+                    ExactFace::Hexagon(v) => &v[..]
+                }.iter()
+                    .map(|i| vertices.get(&i).unwrap().to_array())
+            )
+            .collect()
+    }
+    
+    pub fn mesh_triangles(&self) -> Vec<u32> {
+        let mut n = 0;
+        
+        self.faces.iter()
+            .map(|f| 
+                match f {
+                    ExactFace::Pentagon(_) => {
+                        n += 5;
+                        (n - 5, f)
+                    },
+                    ExactFace::Hexagon(_) => {
+                        n += 6;
+                        (n - 6, f)
+                    }
+                }
+            )
+            .flat_map(|(i, f)|
+                match f {
+                    ExactFace::Pentagon(_) => &[
+                        0, 1, 2,
+                        0, 2, 3,
+                        0, 3, 4
+                    ][..],
+                    ExactFace::Hexagon(_) => &[
+                        0, 1, 2,
+                        0, 2, 3,
+                        0, 3, 4,
+                        0, 4, 5
+                    ][..]
+                }.iter()
+                    .map(move |j| j + i)
+            )
+            .collect::<Vec<_>>()
+    }
 }

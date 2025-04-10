@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use bevy::{
     prelude::*,
     render::{
@@ -8,7 +7,7 @@ use bevy::{
     },
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use hexglobe::projection::globe::{ExactFace, ExactGlobe};
+use hexglobe::projection::globe::ExactGlobe;
 
 fn main() {
     App::new()
@@ -48,43 +47,15 @@ fn setup(
 }
 
 fn create_mesh() -> Mesh {
-    let globe = ExactGlobe::<1>::new();
-    let vertices_f32 = globe.vertices_f32(None);
-    let vertex_data = vertices_f32.iter()
-        .enumerate()
-        .collect::<Vec<_>>();
-    let index_map = vertex_data.iter()
-        .map(|(i, (packed, _))| (**packed, *i as u32))
-        .collect::<HashMap<_, _>>();
-    
-    let vertices = vertex_data.iter()
-        .map(|(_, (_, v))| v.to_array())
-        .collect::<Vec<_>>();
+    let globe = ExactGlobe::<3>::new();
     
     Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD)
         .with_inserted_attribute(
             Mesh::ATTRIBUTE_POSITION,
-            vertices
+            globe.mesh_vertices(None)
         )
         .with_inserted_indices(Indices::U32(
-            globe.faces.iter()
-                .flat_map(|f| match f {
-                    ExactFace::Hexagon(indices) => {
-                        vec![
-                            index_map.get(&indices[0]).unwrap(), index_map.get(&indices[1]).unwrap(), index_map.get(&indices[2]).unwrap(),
-                            index_map.get(&indices[0]).unwrap(), index_map.get(&indices[2]).unwrap(), index_map.get(&indices[3]).unwrap(),
-                            index_map.get(&indices[0]).unwrap(), index_map.get(&indices[3]).unwrap(), index_map.get(&indices[4]).unwrap(),
-                            index_map.get(&indices[0]).unwrap(), index_map.get(&indices[4]).unwrap(), index_map.get(&indices[5]).unwrap(),
-                        ]
-                    },
-                    ExactFace::Pentagon(indices) => vec![
-                        index_map.get(&indices[0]).unwrap(), index_map.get(&indices[1]).unwrap(), index_map.get(&indices[2]).unwrap(),
-                        index_map.get(&indices[0]).unwrap(), index_map.get(&indices[2]).unwrap(), index_map.get(&indices[3]).unwrap(),
-                        index_map.get(&indices[0]).unwrap(), index_map.get(&indices[3]).unwrap(), index_map.get(&indices[4]).unwrap(),
-                    ]
-                })
-                .cloned()
-                .collect::<Vec<_>>()
+            globe.mesh_triangles()
         ))
         .with_computed_normals()
 }
