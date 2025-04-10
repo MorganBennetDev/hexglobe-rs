@@ -96,7 +96,7 @@ impl<const N: u32> ExactGlobe<N> {
             .zip(template.wu().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
-            .cartesian_product((10..15).map(|face| (face, 5 + face % 5)));
+            .cartesian_product((10..15).map(|face| (face, 5 + (face + 1) % 5)));
         
         let lm_b = template.vw()
             .zip(template.vw().rev())
