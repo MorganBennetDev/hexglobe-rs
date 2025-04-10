@@ -2,7 +2,6 @@
 mod tests;
 
 use std::collections::HashMap;
-use std::ops::Deref;
 use glam::{IVec3, Vec3};
 use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
@@ -28,9 +27,8 @@ impl<const N: u32> ExactGlobe<N> {
         let template = SubdividedTriangle::<N>::new();
         let seed = Seed::<N>::icosahedron();
         
-        let vertices = template.triangles.iter()
-            .cloned()
-            .map(|t| ImplicitDenominator::<_, 3>::wrap(t.u.deref() + t.v.deref() + t.w.deref()))
+        let vertices = template.triangles()
+            .map(|t| ImplicitDenominator::<_, 3>::wrap(t.u + t.v + t.w))
             .enumerate()
             .cartesian_product(0..20)
             .map(|((i, v), face)| (
@@ -205,9 +203,9 @@ impl<const N: u32> ExactGlobe<N> {
                 );
                 
                 (i.clone(), slerp_3(
-                    x, *face.u.deref(),
-                    y, *face.v.deref(),
-                    z, *face.w.deref()
+                    x, face.u,
+                    y, face.v,
+                    z, face.w
                 ) * radius)
             })
             .collect::<HashMap<_, _>>()

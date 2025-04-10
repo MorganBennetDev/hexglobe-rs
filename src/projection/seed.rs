@@ -1,10 +1,9 @@
-use std::rc::Rc;
 use glam::Vec3;
 use crate::subdivision::triangle::Triangle;
 
 pub struct Seed<const N: u32> {
-    pub vertices: Vec<Rc<Vec3>>,
-    pub faces: Vec<Triangle<Vec3>>,
+    pub vertices: Vec<Vec3>,
+    pub faces: Vec<Triangle<usize>>,
 }
 
 impl<const N: u32> Seed<N> {
@@ -28,9 +27,7 @@ impl<const N: u32> Seed<N> {
         #[allow(unused_variables)]
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
-                Rc::new(
-                    Vec3::new($x, $y, $z).normalize()
-                )
+                Vec3::new($x, $y, $z).normalize()
             };
         }
         
@@ -53,7 +50,7 @@ impl<const N: u32> Seed<N> {
         
         macro_rules! triangle {
             ($u: expr, $v: expr, $w: expr) => {
-                Triangle::new(vertices[$u].clone(), vertices[$v].clone(), vertices[$w].clone())
+                Triangle::new($u, $v, $w)
             };
         }
         
@@ -91,6 +88,12 @@ impl<const N: u32> Seed<N> {
     }
     
     pub fn get_face(&self, face: usize) -> Triangle<Vec3> {
-        self.faces[face].clone()
+        let t = &self.faces[face];
+        
+        Triangle::new(
+            self.vertices[t.u],
+            self.vertices[t.v],
+            self.vertices[t.w]
+        )
     }
 }

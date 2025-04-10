@@ -3,7 +3,6 @@ mod tests;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::rc::Rc;
 use glam::IVec3;
 use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
@@ -11,8 +10,8 @@ use crate::subdivision::triangle::Triangle;
 
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
-    pub vertices: HashMap<ImplicitDenominator<IVec3, N>, Rc<ImplicitDenominator<IVec3, N>>>,
-    pub triangles: Vec<Rc<Triangle<ImplicitDenominator<IVec3, N>>>>,
+    pub vertices: Vec<ImplicitDenominator<IVec3, N>>,
+    triangles: Vec<Triangle<usize>>,
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
@@ -25,39 +24,39 @@ impl<const N: u32> SubdividedTriangle<N> {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
         let axis = 0..(N + 1);
-        let vertices = axis.clone()
+        let vertices_iter = axis.clone()
             .cartesian_product(axis.clone())
             .cartesian_product(axis.clone())
             .filter(|((x, y), z)| x + y + z == N)
-            .map(|((x, y), z)| ImplicitDenominator::wrap(IVec3::new(x as i32, y as i32, z as i32)))
-            .map(|v| (v.clone(), Rc::new(v)))
-            .collect::<HashMap<_, _>>();
-        
+            .map(|((x, y), z)| ImplicitDenominator::wrap(IVec3::new(x as i32, y as i32, z as i32)));
+            
         // Vertices are in ascending lexicographic order
-        let keys = vertices.keys()
-            .sorted_by_key(|u| (u.x, u.y, u.z))
-            .cloned()
+        let vertices = vertices_iter.clone()
             .collect::<Vec<_>>();
+        
+        let vertices_map = vertices_iter.clone()    
+            .enumerate()
+            .map(|(i, v)| (v.clone(), i))
+            .collect::<HashMap<_, _>>();
         
         let du = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 1, 0));
         let dv = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 0, 1));
         
-        let triangles_up = keys.iter()
+        let triangles_up = vertices.iter()
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
             .map(|v| Triangle::new(
-                vertices.get(v).unwrap().clone(),
-                vertices.get(&(v + &du)).unwrap().clone(),
-                vertices.get(&(v + &dv)).unwrap().clone()
+                vertices_map.get(v).unwrap().clone(),
+                vertices_map.get(&(v + &du)).unwrap().clone(),
+                vertices_map.get(&(v + &dv)).unwrap().clone()
             ));
-        let triangles_down = keys.iter()
+        let triangles_down = vertices.iter()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
-                vertices.get(v).unwrap().clone(),
-                vertices.get(&(v - &du)).unwrap().clone(),
-                vertices.get(&(v - &dv)).unwrap().clone(),
+                vertices_map.get(v).unwrap().clone(),
+                vertices_map.get(&(v - &du)).unwrap().clone(),
+                vertices_map.get(&(v - &dv)).unwrap().clone(),
             ));
         let triangles = triangles_up.chain(triangles_down)
-            .map(|t| Rc::new(t))
             .collect::<Vec<_>>();
         
         Self {
@@ -66,7 +65,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         }
     }
     
-    pub fn upward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
+    pub fn upward_triangles(&self) -> &[Triangle<usize>] {
         &self.triangles[0..Self::N_TRIANGLES_UP]
     }
     
@@ -74,7 +73,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         0..Self::N_TRIANGLES_UP
     }
     
-    pub fn downward_triangles(&self) -> &[Rc<Triangle<ImplicitDenominator<IVec3, N>>>] {
+    pub fn downward_triangles(&self) -> &[Triangle<usize>] {
         &self.triangles[Self::N_TRIANGLES_UP..Self::N_TRIANGLES]
     }
     
@@ -110,35 +109,44 @@ impl<const N: u32> SubdividedTriangle<N> {
             .interleave(self.downward_row(i))
     }
     
+    pub fn triangles(&self) -> impl Iterator<Item = Triangle<ImplicitDenominator<IVec3, N>>> {
+        self.triangles.iter()
+            .map(|t| Triangle::new(
+                self.vertices[t.u],
+                self.vertices[t.v],
+                self.vertices[t.w]
+            ))
+    }
+    
     pub fn u(&self) -> usize {
         self.upward_triangles().iter()
-            .position(|t| t.u.y == 0 && t.u.z == 0)
+            .position(|t| self.vertices[t.u].y == 0 && self.vertices[t.u].z == 0)
             .unwrap()
     }
     
     pub fn v(&self) -> usize {
         self.upward_triangles().iter()
-            .position(|t| t.v.x == 0 && t.v.z == 0)
+            .position(|t| self.vertices[t.v].x == 0 && self.vertices[t.v].z == 0)
             .unwrap()
     }
     
     pub fn w(&self) -> usize {
         self.upward_triangles().iter()
-            .position(|t| t.w.x == 0 && t.w.y == 0)
+            .position(|t| self.vertices[t.w].x == 0 && self.vertices[t.w].y == 0)
             .unwrap()
     }
     
     pub fn uv(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.u.z == 0)
-            .sorted_by_key(|(_, t)| t.u.y)
+            .filter(|(_, t)| self.vertices[t.u].z == 0)
+            .sorted_by_key(|(_, t)| self.vertices[t.u].y)
             .map(|(i, _)| i)
             .interleave(
                 self.downward_triangles().iter()
                     .enumerate()
-                    .filter(|(_, t)| t.w.z == 0)
-                    .sorted_by_key(|(_, t)| t.u.y)
+                    .filter(|(_, t)| self.vertices[t.w].z == 0)
+                    .sorted_by_key(|(_, t)| self.vertices[t.u].y)
                     .map(|(i, _)| i + Self::N_TRIANGLES_UP)
             )
             .collect::<Vec<_>>()
@@ -148,14 +156,14 @@ impl<const N: u32> SubdividedTriangle<N> {
     pub fn vw(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.v.x == 0)
-            .sorted_by_key(|(_, t)| t.v.z)
+            .filter(|(_, t)| self.vertices[t.v].x == 0)
+            .sorted_by_key(|(_, t)| self.vertices[t.v].z)
             .map(|(i, _)| i)
             .interleave(
                 self.downward_triangles().iter()
                     .enumerate()
-                    .filter(|(_, t)| t.u.x == 0)
-                    .sorted_by_key(|(_, t)| t.v.z)
+                    .filter(|(_, t)| self.vertices[t.u].x == 0)
+                    .sorted_by_key(|(_, t)| self.vertices[t.v].z)
                     .map(|(i, _)| i + Self::N_TRIANGLES_UP)
             )
             .collect::<Vec<_>>()
@@ -165,14 +173,14 @@ impl<const N: u32> SubdividedTriangle<N> {
     pub fn wu(&self) -> impl DoubleEndedIterator<Item = usize> {
         self.upward_triangles().iter()
             .enumerate()
-            .filter(|(_, t)| t.u.y == 0)
-            .sorted_by_key(|(_, t)| t.w.x)
+            .filter(|(_, t)| self.vertices[t.u].y == 0)
+            .sorted_by_key(|(_, t)| self.vertices[t.w].x)
             .map(|(i, _)| i)
             .interleave(
                 self.downward_triangles().iter()
                     .enumerate()
-                    .filter(|(_, t)| t.v.y == 0)
-                    .sorted_by_key(|(_, t)| t.w.x)
+                    .filter(|(_, t)| self.vertices[t.v].y == 0)
+                    .sorted_by_key(|(_, t)| self.vertices[t.w].x)
                     .map(|(i, _)| i + Self::N_TRIANGLES_UP)
             )
             .collect::<Vec<_>>()
