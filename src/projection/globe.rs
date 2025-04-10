@@ -129,37 +129,37 @@ impl<const N: u32> ExactGlobe<N> {
     fn vertex_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         let tb = [
             ExactFace::Pentagon([
-                PackedIndex::new(0, template.u()),
-                PackedIndex::new(1, template.u()),
-                PackedIndex::new(2, template.u()),
-                PackedIndex::new(3, template.u()),
                 PackedIndex::new(4, template.u()),
+                PackedIndex::new(3, template.u()),
+                PackedIndex::new(2, template.u()),
+                PackedIndex::new(1, template.u()),
+                PackedIndex::new(0, template.u()),
             ]),
             ExactFace::Pentagon([
-                PackedIndex::new(19, template.u()),
-                PackedIndex::new(18, template.u()),
-                PackedIndex::new(17, template.u()),
-                PackedIndex::new(16, template.u()),
                 PackedIndex::new(15, template.u()),
+                PackedIndex::new(16, template.u()),
+                PackedIndex::new(17, template.u()),
+                PackedIndex::new(18, template.u()),
+                PackedIndex::new(19, template.u()),
             ])
         ].into_iter();
         
         let um = (5..10)
             .map(|face| ExactFace::Pentagon([
-                PackedIndex::new(face, template.v()),
-                PackedIndex::new(face + 5, template.u()),
-                PackedIndex::new(5 + (face + 1) % 5, template.w()),
-                PackedIndex::new((face + 1) % 5, template.v()),
                 PackedIndex::new(face - 5, template.w()),
+                PackedIndex::new((face + 1) % 5, template.v()),
+                PackedIndex::new(5 + (face + 1) % 5, template.w()),
+                PackedIndex::new(face + 5, template.u()),
+                PackedIndex::new(face, template.v()),
             ]));
         
         let lm = (10..15)
             .map(|face| ExactFace::Pentagon([
-                PackedIndex::new(face, template.v()),
-                PackedIndex::new(face - 5, template.u()),
-                PackedIndex::new(10 + (face + 4) % 5, template.w()),
-                PackedIndex::new(15 + (face + 4) % 5, template.v()),
                 PackedIndex::new(face + 5, template.w()),
+                PackedIndex::new(15 + (face + 4) % 5, template.v()),
+                PackedIndex::new(10 + (face + 4) % 5, template.w()),
+                PackedIndex::new(face - 5, template.u()),
+                PackedIndex::new(face, template.v()),
             ]));
         
         tb
@@ -231,7 +231,7 @@ impl<const N: u32> ExactGlobe<N> {
         let mut n = 0;
         
         self.faces.iter()
-            .map(|f| 
+            .map(|f|
                 match f {
                     ExactFace::Pentagon(_) => {
                         n += 5;
