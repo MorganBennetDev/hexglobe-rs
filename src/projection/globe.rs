@@ -72,38 +72,38 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     fn edge_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
-        let t_t = template.wu()
-            .zip(template.uv().rev())
+        let t_t = template.wu().into_iter()
+            .zip(template.uv().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((0..5).map(|face| (face, (face + 1) % 5)));
         
-        let t_um = template.vw()
-            .zip(template.vw().rev())
+        let t_um = template.vw().into_iter()
+            .zip(template.vw().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((0..5).map(|face| (face, face + 5)));
         
-        let um_lm = template.uv()
-            .zip(template.uv().rev())
+        let um_lm = template.uv().into_iter()
+            .zip(template.uv().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((5..10).map(|face| (face, face + 5)));
         
-        let lm_um = template.wu()
-            .zip(template.wu().rev())
+        let lm_um = template.wu().into_iter()
+            .zip(template.wu().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((10..15).map(|face| (face, 5 + (face + 1) % 5)));
         
-        let lm_b = template.vw()
-            .zip(template.vw().rev())
+        let lm_b = template.vw().into_iter()
+            .zip(template.vw().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((10..15).map(|face| (face, face + 5)));
         
-        let b_b = template.uv()
-            .zip(template.wu().rev())
+        let b_b = template.uv().into_iter()
+            .zip(template.wu().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
             .step_by(2)
             .cartesian_product((15..20).map(|face| (face, 15 + (face + 1) % 5)));
@@ -178,12 +178,12 @@ impl<const N: u32> ExactGlobe<N> {
                     .cartesian_product(0..20)
                     .map(|(((a0, b0), (a1, b1), (a2, b2)), face)| {
                         ExactFace::Hexagon([
-                            PackedIndex::new(face, a0),
-                            PackedIndex::new(face, a1),
-                            PackedIndex::new(face, a2),
-                            PackedIndex::new(face, b2),
+                            PackedIndex::new(face, b0),
                             PackedIndex::new(face, b1),
-                            PackedIndex::new(face, b0)
+                            PackedIndex::new(face, b2),
+                            PackedIndex::new(face, a2),
+                            PackedIndex::new(face, a1),
+                            PackedIndex::new(face, a0),
                         ])
                     })
                     .collect::<Vec<_>>()

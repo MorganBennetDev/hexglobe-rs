@@ -4,9 +4,9 @@ fn edge_length_test<const N: u32>() {
     let subdivided = SubdividedTriangle::<N>::new();
     let n_triangles_edge = (2 * N - 1) as usize;
     
-    assert_eq!(subdivided.uv().count(), n_triangles_edge, "Incorrect number of triangles touching edge uv for subdivision level {:?}.", N);
-    assert_eq!(subdivided.vw().count(), n_triangles_edge, "Incorrect number of triangles touching edge vw for subdivision level {:?}.", N);
-    assert_eq!(subdivided.wu().count(), n_triangles_edge, "Incorrect number of triangles touching edge wu for subdivision level {:?}.", N);
+    assert_eq!(subdivided.uv().len(), n_triangles_edge, "Incorrect number of triangles touching edge uv for subdivision level {:?}.", N);
+    assert_eq!(subdivided.vw().len(), n_triangles_edge, "Incorrect number of triangles touching edge vw for subdivision level {:?}.", N);
+    assert_eq!(subdivided.wu().len(), n_triangles_edge, "Incorrect number of triangles touching edge wu for subdivision level {:?}.", N);
 }
 
 #[test]
