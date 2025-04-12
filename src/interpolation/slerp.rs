@@ -36,8 +36,8 @@ fn sphere_exp(q: &Vec3, dp: &Vec3) -> Vec3 {
 /// to Spherical Splines and Interpolation](https://mathweb.ucsd.edu/~sbuss/ResearchWeb/spheremean/paper.pdf).
 pub fn slerp_n<const N: usize>(w: &[f32; N], p: &[Vec3; N]) -> Vec3 {
     let total_weight = w.iter().cloned().tree_reduce(|a, b| a + b);
-    assert!(total_weight.is_some(), "Sum of weights must exist.");
-    assert!((total_weight.unwrap() - 1.0) <= f32::EPSILON, "Sum of weights must be equal to 1.0.");
+    debug_assert!(total_weight.is_some(), "Sum of weights must exist.");
+    debug_assert!((total_weight.unwrap() - 1.0) <= f32::EPSILON, "Sum of weights must be equal to 1.0.");
     
     let mut q = w.iter()
         .zip(p.iter())
