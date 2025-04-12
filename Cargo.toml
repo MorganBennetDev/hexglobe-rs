@@ -2,6 +2,12 @@
 name = "hexglobe"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Library to generate hexagonal tessellations of a sphere quickly and accurately."
+repository = "https://github.com/MorganBennetDev/hexglobe-rs"
+readme = "README.md"
+keywords = ["gamedev", "graphics", "goldberg", "sphere", "tessellation"]
+categories = ["game-development", "mathematics"]
 
 [dependencies]
 itertools = "0.14.0"
