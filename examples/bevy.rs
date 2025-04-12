@@ -14,6 +14,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
+        .add_systems(Update, draw_debug)
         .run();
 }
 
@@ -44,6 +45,20 @@ fn setup(
         PanOrbitCamera::default(),
         Transform::from_xyz(0.0, 0.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+}
+
+fn draw_debug(
+    mut gizmos: Gizmos
+) {
+    /*
+    x - red
+    y - green
+    z - blue
+    */
+    gizmos.axes(
+        Transform::IDENTITY,
+        2.0
+    );
 }
 
 fn create_mesh() -> Mesh {
