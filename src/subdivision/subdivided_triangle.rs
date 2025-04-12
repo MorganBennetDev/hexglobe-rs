@@ -8,6 +8,7 @@ use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
 use crate::subdivision::triangle::Triangle;
 
+/// Represents a triangle which has been subdivided `N` times using rational barycentric coordinates for precision.
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
     pub vertices: Vec<ImplicitDenominator<IVec3, N>>,
@@ -15,9 +16,14 @@ pub struct SubdividedTriangle<const N: u32> {
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
+    /// The total number of triangles in the subdivision.
     pub const N_TRIANGLES: usize = (N * N) as usize;
+    /// The total number of vertices in the subdivision.
     pub const N_VERTICES: usize = ((N + 1) * (N + 2) / 2) as usize;
+    /// The number of "upward pointing" triangles (`u.x > v.x`, `u.x > w.x`, and `v.x = w.x`). Used for optimization
+    /// purposes.
     const N_TRIANGLES_UP: usize = (N * (N + 1) / 2) as usize;
+    /// The number of "downward pointing" triangles (complement of upward facing set). Used for optimization purposes.
     const N_TRIANGLES_DOWN: usize = (N * (N - 1) / 2) as usize;
     
     pub fn new() -> Self {
@@ -65,22 +71,6 @@ impl<const N: u32> SubdividedTriangle<N> {
         }
     }
     
-    pub fn upward_triangles(&self) -> &[Triangle<usize>] {
-        &self.triangles[0..Self::N_TRIANGLES_UP]
-    }
-    
-    pub fn upward_triangle_indices(&self) -> impl Iterator<Item = usize> {
-        0..Self::N_TRIANGLES_UP
-    }
-    
-    pub fn downward_triangles(&self) -> &[Triangle<usize>] {
-        &self.triangles[Self::N_TRIANGLES_UP..Self::N_TRIANGLES]
-    }
-    
-    pub fn downward_triangle_indices(&self) -> impl Iterator<Item = usize> {
-        Self::N_TRIANGLES_UP..Self::N_TRIANGLES
-    }
-    
     fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
         if i >= N as usize {
             (0..0).rev()
@@ -103,12 +93,14 @@ impl<const N: u32> SubdividedTriangle<N> {
         }
     }
     
-    // Iterator of indices of triangles with at least one vertex whose x coordinate is x sorted by increasing y
+    /// Iterator of indices of triangles with at least one vertex whose `x` coordinate is `i` sorted by increasing `y`
+    /// coordinate of their centroids.
     pub fn row(&self, i: usize) -> impl Iterator<Item = usize> {
         self.upward_row(i)
             .interleave(self.downward_row(i))
     }
     
+    /// Iterator over all triangles in this subdivision.
     pub fn triangles(&self) -> impl Iterator<Item = Triangle<ImplicitDenominator<IVec3, N>>> {
         self.triangles.iter()
             .map(|t| Triangle::new(
@@ -118,18 +110,23 @@ impl<const N: u32> SubdividedTriangle<N> {
             ))
     }
     
+    /// Index of the `u` vertex of this triangle (`(1,0,0)` in barycentric coordinates).
     pub fn u(&self) -> usize {
         Self::N_TRIANGLES_UP - 1
     }
     
+    /// Index of the `v` vertex of this triangle (`(0,1,0)` in barycentric coordinates).
     pub fn v(&self) -> usize {
         N as usize - 1
     }
     
+    /// Index of the `w` vertex of this triangle (`(0,0,1)` in barycentric coordinates).
     pub fn w(&self) -> usize {
         0
     }
     
+    /// Indices of all triangles which have at least one vertex lying along the `uv` edge (`z=0` in barycentric
+    /// coordinates) of the parent triangle sorted by descending centroid `x` coordinate.
     pub fn uv(&self) -> Vec<usize> {
         (0..N as usize).into_iter()
             .map(|i| Self::N_TRIANGLES_UP - i * (i + 1) / 2 - 1)
@@ -140,10 +137,14 @@ impl<const N: u32> SubdividedTriangle<N> {
             .collect::<Vec<_>>()
     }
     
+    /// Indices of all triangles which have at least one vertex lying along the `vw` edge (`x=0` in barycentric
+    /// coordinates) of the parent triangle sorted by descending centroid `y` coordinate.
     pub fn vw(&self) -> Vec<usize> {
         self.row(0).collect::<Vec<_>>()
     }
     
+    /// Indices of all triangles which have at least one vertex lying along the `wu` edge (`y=0` in barycentric
+    /// coordinates) of the parent triangle sorted by descending centroid `z` coordinate.
     pub fn wu(&self) -> Vec<usize> {
         let k = (0..N as usize).rev()
             .map(|i| (i + 1) * (i + 2) / 2);
@@ -158,8 +159,8 @@ impl<const N: u32> SubdividedTriangle<N> {
             .collect::<Vec<_>>()
     }
     
-    // Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
-    // ordered for efficient computation.
+    /// Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
+    /// ordered for efficient computation.
     pub fn adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
         (0..((N - 1) as usize)).flat_map(|i|
             (0..(N as usize - 1 - i))

@@ -9,12 +9,15 @@ use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
+/// Represents a face of a Goldberg polyhedron as a list of (indices to) vertices in counterclockwise winding order.
 #[derive(Debug)]
 pub enum ExactFace {
     Pentagon([PackedIndex; 5]),
     Hexagon([PackedIndex; 6])
 }
 
+/// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
+/// times.
 pub struct ExactGlobe<const N: u32> {
     seed: Seed<N>,
     subdivision: SubdividedTriangle<N>,
@@ -22,6 +25,8 @@ pub struct ExactGlobe<const N: u32> {
 }
 
 impl<const N: u32> ExactGlobe<N> {
+    /// Initializes the data for a new polyhedron. This is very cheap as all the expensive computations are done during
+    /// conversion to floating point coordinates.
     pub fn new() -> Self {
         let subdivision = SubdividedTriangle::<N>::new();
         let seed = Seed::<N>::icosahedron();
@@ -179,9 +184,12 @@ impl<const N: u32> ExactGlobe<N> {
             )
     }
     
+    /// Generates a Goldberg polyhedron with an optional radius (default of 1.0). This is the most expensive operation
+    /// as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries between
+    /// faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to only
+    /// compute one and may be implemented in the future.
     pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
         let radius = r.unwrap_or(1.0);
-        
         
         let base = self.subdivision.triangles()
             .map(|t| (t.u + t.v + t.w).as_vec3() / (3 * N) as f32)
@@ -211,6 +219,8 @@ impl<const N: u32> ExactGlobe<N> {
             .collect::<HashMap<_, _>>()
     }
     
+    /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0) using
+    /// [vertices_f32].
     pub fn mesh_vertices(&self, r: Option<f32>) -> Vec<[f32; 3]> {
         let vertices = self.vertices_f32(r);
         
@@ -225,6 +235,8 @@ impl<const N: u32> ExactGlobe<N> {
             .collect()
     }
     
+    /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
+    /// indices are deterministic so this is a cheap function and can be called independently of vertex computation.
     pub fn mesh_triangles(&self) -> Vec<u32> {
         let mut n = 0;
         

@@ -15,6 +15,7 @@ impl<const N: u32> Seed<N> {
     Outputs the faces of a regular icosahedron in spherical coordinates.
     Source for Cartesian coordinates and faces: github.com/virtualritz/polyhedron-ops
      */
+    /// Initializes a seed icosahedron. Currently, this is the only seed option.
     pub fn icosahedron() -> Self {
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
@@ -24,6 +25,7 @@ impl<const N: u32> Seed<N> {
         
         let c0 = 0.809_017;
         
+        // It's not really unused
         #[allow(unused_variables)]
         let vertices = vec![
             vertex!(  0.5,  0.0,   c0), // 0
@@ -40,12 +42,14 @@ impl<const N: u32> Seed<N> {
             vertex!(  0.0,  -c0, -0.5), // 11
         ];
         
+        // Shorthand macro for explicitly defining a triangular face.
         macro_rules! triangle {
             ($u: expr, $v: expr, $w: expr) => {
                 Face::Base(Triangle::new(vertices[$u], vertices[$v], vertices[$w]))
             };
         }
         
+        // Shorthand macro for defining a face which is the same as another face rotated about some axis.
         macro_rules! transform {
             ($i: expr, $j: expr, $r: expr) => {
                 Face::Symmetry($i, Mat3::from_axis_angle(
@@ -87,6 +91,11 @@ impl<const N: u32> Seed<N> {
         }
     }
     
+    /// Get the faces which are defined as transformed versions of other faces.
+    /// 
+    /// Returns a [Vec] of `(usize, usize, Mat3)` where the first entry is the index of the face being defined, the
+    /// second is the index of the face being transformed, and the third is a matrix representing the transformation
+    /// to turn the base face into the current face.
     pub fn symmetries(&self) -> Vec<(usize, usize, Mat3)> {
         self.faces.iter()
             .enumerate()
@@ -97,6 +106,10 @@ impl<const N: u32> Seed<N> {
             .collect::<Vec<_>>()
     }
     
+    /// Get the faces which are defined explicitly.
+    /// 
+    /// Returns a [Vec] of `(usize, Triangle<Vec3>)` where the first entry is the index of the given face and the second
+    /// is the representation of that face in Euclidean space.
     pub fn base_faces(&self) -> Vec<(usize, Triangle<Vec3>)> {
         self.faces.iter()
             .enumerate()

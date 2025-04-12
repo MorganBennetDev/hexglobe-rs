@@ -1,10 +1,14 @@
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Deref, Div, Mul, Sub};
 
+/// Helper struct which stores the denominator of a fraction within the type. Not strictly necessary but helps
+/// tremendously with readability and maintainability. Implements passthroughs for various common (in this library)
+/// arithmetic methods.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ImplicitDenominator<T, const N: u32>(T);
 
 impl<T, const N: u32> ImplicitDenominator<T, N> {
+    /// Create a new fraction with denominator `N`.
     pub fn new(value: T) -> Self {
         Self(value)
     }

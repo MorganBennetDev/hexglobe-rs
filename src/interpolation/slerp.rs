@@ -32,8 +32,10 @@ fn sphere_exp(q: &Vec3, dp: &Vec3) -> Vec3 {
 }
 
 /// Performs weighted spherical linear interpolation on a set of `N` vectors all lying on the same sphere using the
-/// local linear convergence algorithm (A2) described by Buss and Fillmore in [Spherical Averages and Applications
+/// local linear convergence algorithm (A1) described by Buss and Fillmore in [Spherical Averages and Applications
 /// to Spherical Splines and Interpolation](https://mathweb.ucsd.edu/~sbuss/ResearchWeb/spheremean/paper.pdf).
+/// I attempted to implement the quadratic convergence algorithm but was not able to do so in a way that led to
+/// empirically better benchmarks. If you can manage this, contributions are always welcome.
 pub fn slerp_n<const N: usize>(w: &[f32; N], p: &[Vec3; N]) -> Vec3 {
     let total_weight = w.iter().cloned().tree_reduce(|a, b| a + b);
     debug_assert!(total_weight.is_some(), "Sum of weights must exist.");
@@ -61,6 +63,7 @@ pub fn slerp_n<const N: usize>(w: &[f32; N], p: &[Vec3; N]) -> Vec3 {
     }
 }
 
+/// Shorthand for `slerp_n(&[w1, w2, w3], &[p1, p2, p3])`.
 pub fn slerp_3(w1: f32, p1: Vec3, w2: f32, p2: Vec3, w3: f32, p3: Vec3) -> Vec3 {
     slerp_n(&[w1, w2, w3], &[p1, p2, p3])
 }

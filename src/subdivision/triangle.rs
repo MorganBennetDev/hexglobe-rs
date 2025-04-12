@@ -1,3 +1,4 @@
+/// Helper struct to store a triangle with vertices of any abstract type.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct Triangle<T: Clone> {
     pub u: T,
