@@ -1,30 +1,21 @@
-use glam::Vec3;
+use glam::{Mat3, Vec3};
 use crate::subdivision::triangle::Triangle;
 
+enum Face {
+    Base(Triangle<Vec3>),
+    Symmetry(usize, Mat3)
+}
+
 pub struct Seed<const N: u32> {
-    pub vertices: Vec<Vec3>,
-    pub faces: Vec<Triangle<usize>>,
+    faces: Vec<Face>,
 }
 
 impl<const N: u32> Seed<N> {
     /*
     Outputs the faces of a regular icosahedron in spherical coordinates.
     Source for Cartesian coordinates and faces: github.com/virtualritz/polyhedron-ops
-     1,  0,  p |       k, 0
-     1,  0, -p |    pi-k, 0
-    -1,  0,  p |       k, 180
-    -1,  0, -p |    pi-k, 180
-     p,  1,  0 |       k, 90
-     p, -1,  0 |      -k, 90
-    -p,  1,  0 |    pi-k, 90
-    -p, -1,  0 | -(pi-k), 90
-     0,  p,  1 |       k, 90
-     0,  p, -1 |    pi-k, 90
-     0, -p,  1 |       k, 270
-     0, -p, -1 |    pi-k, 270
      */
     pub fn icosahedron() -> Self {
-        #[allow(unused_variables)]
         macro_rules! vertex {
             ($x: expr, $y: expr, $z: expr) => {
                 Vec3::new($x, $y, $z).normalize()
@@ -33,67 +24,86 @@ impl<const N: u32> Seed<N> {
         
         let c0 = 0.809_017;
         
+        #[allow(unused_variables)]
         let vertices = vec![
-            vertex!(0.5, 0.0, c0),
-            vertex!(0.5, 0.0, -c0),
-            vertex!(-0.5, 0.0, c0),
-            vertex!(-0.5, 0.0, -c0),
-            vertex!(c0, 0.5, 0.0),
-            vertex!(c0, -0.5, 0.0),
-            vertex!(-c0, 0.5, 0.0),
-            vertex!(-c0, -0.5, 0.0),
-            vertex!(0.0, c0, 0.5),
-            vertex!(0.0, c0, -0.5),
-            vertex!(0.0, -c0, 0.5),
-            vertex!(0.0, -c0, -0.5),
+            vertex!(  0.5,  0.0,   c0), // 0
+            vertex!(  0.5,  0.0,  -c0), // 1
+            vertex!( -0.5,  0.0,   c0), // 2
+            vertex!( -0.5,  0.0,  -c0), // 3
+            vertex!(   c0,  0.5,  0.0), // 4
+            vertex!(   c0, -0.5,  0.0), // 5
+            vertex!(  -c0,  0.5,  0.0), // 6
+            vertex!(  -c0, -0.5,  0.0), // 7
+            vertex!(  0.0,   c0,  0.5), // 8
+            vertex!(  0.0,   c0, -0.5), // 9
+            vertex!(  0.0,  -c0,  0.5), // 10
+            vertex!(  0.0,  -c0, -0.5), // 11
         ];
         
         macro_rules! triangle {
             ($u: expr, $v: expr, $w: expr) => {
-                Triangle::new($u, $v, $w)
+                Face::Base(Triangle::new(vertices[$u], vertices[$v], vertices[$w]))
+            };
+        }
+        
+        macro_rules! transform {
+            ($i: expr, $j: expr, $r: expr) => {
+                Face::Symmetry($i, Mat3::from_axis_angle(
+                    vertices[$j],
+                    (($r) as f32).to_radians()
+                ))
             };
         }
         
         let faces = vec![
             // Top
-            triangle!(  0,  5, 10 ), // 0
-            triangle!(  0, 10,  2 ), // 1
-            triangle!(  0,  2,  8 ), // 2
-            triangle!(  0,  8,  4 ), // 3
-            triangle!(  0,  4,  5 ), // 4
+            triangle!(   0,  5,  10 ), // 0
+            transform!(  0,  3,  72 ), // 1
+            transform!(  0,  3, 144 ), // 2
+            transform!(  0,  3, 216 ), // 3
+            transform!(  0,  3, 288 ), // 4
             // Upper middle
-            triangle!( 11, 10,  5 ), // 6
-            triangle!(  7,  2, 10 ), // 5
-            triangle!(  6,  8,  2 ), // 9
-            triangle!(  9,  4,  8 ), // 8
-            triangle!(  1,  5,  4 ), // 7
+            triangle!(  11, 10,   5 ), // 5
+            transform!(  5,  3,  72 ), // 6
+            transform!(  5,  3, 144 ), // 7
+            transform!(  5,  3, 216 ), // 8
+            transform!(  5,  3, 288 ), // 9
             // Lower middle
-            triangle!( 10, 11,  7 ), // 10
-            triangle!(  2,  7,  6 ), // 11
-            triangle!(  8,  6,  9 ), // 12
-            triangle!(  4,  9,  1 ), // 13
-            triangle!(  5,  1, 11 ), // 14
+            triangle!(  10, 11,   7 ), // 10
+            transform!( 10,  3,  72 ), // 11
+            transform!( 10,  3, 144 ), // 12
+            transform!( 10,  3, 216 ), // 13
+            transform!( 10,  3, 288 ), // 14
             // Bottom
-            triangle!(  3,  7, 11 ), // 15
-            triangle!(  3,  6,  7 ), // 19
-            triangle!(  3,  9,  6 ), // 18
-            triangle!(  3,  1,  9 ), // 17
-            triangle!(  3, 11,  1 ), // 16
+            triangle!(   3,  7,  11 ), // 15
+            transform!( 15,  3,  72 ), // 16
+            transform!( 15,  3, 144 ), // 17
+            transform!( 15,  3, 216 ), // 18
+            transform!( 15,  3, 288 ), // 19
         ];
         
         Self {
-            vertices,
             faces,
         }
     }
     
-    pub fn get_face(&self, face: usize) -> Triangle<Vec3> {
-        let t = &self.faces[face];
-        
-        Triangle::new(
-            self.vertices[t.u],
-            self.vertices[t.v],
-            self.vertices[t.w]
-        )
+    pub fn symmetries(&self) -> Vec<(usize, usize, Mat3)> {
+        self.faces.iter()
+            .enumerate()
+            .filter_map(|(i, face)| match face {
+                Face::Base(_) => None,
+                Face::Symmetry(f, t) => Some((i, f.clone(), t.clone()))
+            })
+            .collect::<Vec<_>>()
+    }
+    
+    pub fn base_faces(&self) -> Vec<(usize, Triangle<Vec3>)> {
+        self.faces.iter()
+            .enumerate()
+            .filter_map(|(i, face)| match face {
+                Face::Base(t) => Some((i, t.clone())),
+                Face::Symmetry(_, _) => None
+            })
+            .collect::<Vec<_>>()
     }
 }

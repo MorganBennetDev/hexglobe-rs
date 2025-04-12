@@ -182,19 +182,32 @@ impl<const N: u32> ExactGlobe<N> {
     pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
         let radius = r.unwrap_or(1.0);
         
-        self.subdivision.triangles()
+        
+        let base = self.subdivision.triangles()
             .map(|t| (t.u + t.v + t.w).as_vec3() / (3 * N) as f32)
             .enumerate()
-            .cartesian_product(0..20)
-            .map(|((i, centroid), f)| {
-                let face = self.seed.get_face(f);
-                
-                (PackedIndex::new(f, i), slerp_3(
+            .cartesian_product(self.seed.base_faces())
+            .map(|((i, centroid), (f, face))| (
+                PackedIndex::new(f, i),
+                slerp_3(
                     centroid.x, face.u,
                     centroid.y, face.v,
                     centroid.z, face.w
-                ) * radius)
-            })
+                ) * radius
+            ))
+            .collect::<Vec<_>>();
+            
+        base.iter()
+            .cloned()
+            .chain(
+                base.iter()
+                    .cartesian_product(self.seed.symmetries())
+                    .filter(|((i, _), (_, b, _))| i.face() == *b)
+                    .map(|((i, v), (f, _, t))| (
+                        PackedIndex::new(f, i.subdivision()),
+                        t.mul_vec3(*v)
+                    ))
+            )
             .collect::<HashMap<_, _>>()
     }
     
