@@ -9,11 +9,17 @@ use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
-/// Represents a face of a Goldberg polyhedron as a list of (indices to) vertices in counterclockwise winding order.
 #[derive(Debug)]
-pub enum ExactFace {
+enum ExactFace {
     Pentagon([PackedIndex; 5]),
     Hexagon([PackedIndex; 6])
+}
+
+/// Represents a face of a Goldberg polyhedron as a list of (indices to) vertices in counterclockwise winding order.
+#[derive(Copy, Clone, Debug)]
+pub enum MeshFace {
+    Pentagon([u32; 5]),
+    Hexagon([u32; 6])
 }
 
 /// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
@@ -21,7 +27,7 @@ pub enum ExactFace {
 pub struct ExactGlobe<const N: u32> {
     seed: Seed<N>,
     subdivision: SubdividedTriangle<N>,
-    pub faces: Vec<ExactFace>,
+    faces: Vec<ExactFace>,
 }
 
 impl<const N: u32> ExactGlobe<N> {
@@ -184,6 +190,11 @@ impl<const N: u32> ExactGlobe<N> {
             )
     }
     
+    /// Returns the number of faces in the specified polyhedron.
+    pub fn count_faces(&self) -> usize {
+        self.faces.len()
+    }
+    
     /// Generates a Goldberg polyhedron with an optional radius (default of 1.0). This is the most expensive operation
     /// as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries between
     /// faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to only
@@ -235,40 +246,46 @@ impl<const N: u32> ExactGlobe<N> {
             .collect()
     }
     
-    /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
-    /// indices are deterministic so this is a cheap function and can be called independently of vertex computation.
-    pub fn mesh_triangles(&self) -> Vec<u32> {
+    /// Returns a list of the faces of the given Goldberg polyhedron used as a preliminary step in [mesh_triangles] but
+    /// can also be used independently.
+    pub fn mesh_faces(&self) -> Vec<MeshFace> {
         let mut n = 0;
         
         self.faces.iter()
-            .map(|f|
-                match f {
-                    ExactFace::Pentagon(_) => {
-                        n += 5;
-                        (n - 5, f)
-                    },
-                    ExactFace::Hexagon(_) => {
-                        n += 6;
-                        (n - 6, f)
-                    }
+            .map(|face| match face {
+                ExactFace::Pentagon(_) => {
+                    n += 5;
+                    (n - 5, face)
+                },
+                ExactFace::Hexagon(_) => {
+                    n += 6;
+                    (n - 6, face)
                 }
-            )
-            .flat_map(|(i, f)|
-                match f {
-                    ExactFace::Pentagon(_) => &[
-                        0, 1, 2,
-                        0, 2, 3,
-                        0, 3, 4
-                    ][..],
-                    ExactFace::Hexagon(_) => &[
-                        0, 1, 2,
-                        0, 2, 3,
-                        0, 3, 4,
-                        0, 4, 5
-                    ][..]
-                }.iter()
-                    .map(move |j| j + i)
-            )
-            .collect::<Vec<_>>()
+            })
+            .map(|(i, face)| match face {
+                ExactFace::Pentagon(_) => MeshFace::Pentagon([i, i + 1, i + 2, i + 3, i + 4]),
+                ExactFace::Hexagon(_) => MeshFace::Hexagon([i, i + 1, i + 2, i + 3, i + 4, i + 5])
+            })
+            .collect()
+    }
+    
+    /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
+    /// indices are deterministic so this is a cheap function and can be called independently of vertex computation.
+    pub fn mesh_triangles(&self) -> Vec<u32> {
+        self.mesh_faces().into_iter()
+            .flat_map(|face| match face {
+                MeshFace::Pentagon(v) => vec![
+                    v[0], v[1], v[2],
+                    v[0], v[2], v[3],
+                    v[0], v[3], v[4]
+                ],
+                MeshFace::Hexagon(v) => vec![
+                    v[0], v[1], v[2],
+                    v[0], v[2], v[3],
+                    v[0], v[3], v[4],
+                    v[0], v[4], v[5]
+                ]
+            })
+            .collect()
     }
 }
