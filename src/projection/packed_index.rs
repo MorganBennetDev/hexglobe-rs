@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Formatter};
-use petgraph::adj::IndexType;
 
 /// Wrapper type for a `usize` in which the lower 5 bits represent the index of 1 of 20 icosahedral faces and the
 /// remaining bits represent the index of a triangular subdivision within that face.
@@ -26,20 +25,5 @@ impl PackedIndex {
 impl Debug for PackedIndex {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}:{:?}", self.face(), self.subdivision())
-    }
-}
-
-// Convenience `impl` to allow [PackedIndex] to be used as an index for [petgraph] graphs.
-unsafe impl IndexType for PackedIndex {
-    fn new(x: usize) -> Self {
-        Self(x)
-    }
-    
-    fn index(&self) -> usize {
-        self.0
-    }
-    
-    fn max() -> Self {
-        Self(usize::MAX)
     }
 }

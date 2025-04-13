@@ -159,17 +159,17 @@ impl<const N: u32> SubdividedTriangle<N> {
             .collect::<Vec<_>>()
     }
     
-    /// Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
-    /// ordered for efficient computation.
-    pub fn adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
-        (0..((N - 1) as usize)).flat_map(|i|
-            (0..(N as usize - 1 - i))
-                .map(move |j| Self::N_TRIANGLES_UP + i + j)
-                .flat_map(move |j| [
-                    (j, j - (10 - i)),
-                    (j, j - (9 - i)),
-                    (j, j - 6)
-                ])
-        )
-    }
+    // Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
+    // ordered for efficient computation.
+    // pub fn adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
+    //     (0..((N - 1) as usize)).flat_map(|i|
+    //         (0..(N as usize - 1 - i))
+    //             .map(move |j| Self::N_TRIANGLES_UP + i + j)
+    //             .flat_map(move |j| [
+    //                 (j, j - (10 - i)),
+    //                 (j, j - (9 - i)),
+    //                 (j, j - 6)
+    //             ])
+    //     )
+    // }
 }
