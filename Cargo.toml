@@ -15,16 +15,29 @@ glam = "0.30.1"
 
 [dev-dependencies]
 divan = "0.1.17"
-bevy = "0.15.3"
-bevy_panorbit_camera = "0.25.0"
 ntest = "0.9.3"
 assert2 = "0.3.15"
 
+[dev-dependencies.bevy]
+version = "0.15.3"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "tonemapping_luts",
+    "bevy_gizmos",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_window",
+    "bevy_winit",
+    "multi_threaded",
+    "x11",
+    "dynamic_linking"
+]
+
 [profile.dev.package."*"]
 opt-level = 3
-
-[profile.dev.package.bevy]
-features = ["dynamic_linking"]
 
 [[bench]]
 name = "subdivision"
