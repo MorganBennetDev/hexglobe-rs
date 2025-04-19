@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashMap;
 use std::fmt::Debug;
 use glam::IVec3;
 use itertools::Itertools;
@@ -40,27 +39,22 @@ impl<const N: u32> SubdividedTriangle<N> {
         let vertices = vertices_iter.clone()
             .collect::<Vec<_>>();
         
-        let vertices_map = vertices_iter.clone()
-            .enumerate()
-            .map(|(i, v)| (v.clone(), i))
-            .collect::<HashMap<_, _>>();
-        
         let du = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 1, 0));
         let dv = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 0, 1));
         
         let triangles_up = vertices.iter()
             .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
             .map(|v| Triangle::new(
-                vertices_map.get(v).unwrap().clone(),
-                vertices_map.get(&(v + &du)).unwrap().clone(),
-                vertices_map.get(&(v + &dv)).unwrap().clone()
+                Self::compute_vertex_index_unchecked(v.inner()),
+                Self::compute_vertex_index_unchecked((v + du).inner()),
+                Self::compute_vertex_index_unchecked((v + dv).inner())
             ));
         let triangles_down = vertices.iter()
             .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
-                vertices_map.get(v).unwrap().clone(),
-                vertices_map.get(&(v - &du)).unwrap().clone(),
-                vertices_map.get(&(v - &dv)).unwrap().clone(),
+                Self::compute_vertex_index_unchecked(v.inner()),
+                Self::compute_vertex_index_unchecked((v - du).inner()),
+                Self::compute_vertex_index_unchecked((v - dv).inner()),
             ));
         let triangles = triangles_up.chain(triangles_down)
             .collect::<Vec<_>>();
@@ -172,4 +166,39 @@ impl<const N: u32> SubdividedTriangle<N> {
     //             ])
     //     )
     // }
+    /// Computes the index of the given vertex in a subdivision's list of vertices. Uses knowledge of how the vertex
+    /// list is structured to be faster than searching the [Vec]. Performs input validation to ensure vertex coordinates
+    /// are valid. To skip input validation, use [compute_vertex_index_unchecked]. This is a static method so that it
+    /// can be used in [new] to eliminate expensive lookups while constructing triangles.
+    pub fn compute_vertex_index(v: IVec3) -> Option<usize> {
+        if v.x < 0 || v.y < 0 || v.z < 0 || v.x + v.y + v.z != N as i32 {
+            None
+        } else {
+            Some(Self::compute_vertex_index_unchecked(v))
+        }
+    }
+    
+    /// Computes the index of the given vertex in a subdivision's list of vertices without checking if the coordinates
+    /// are valid.
+    pub const fn compute_vertex_index_unchecked(v: IVec3) -> usize {
+        /*
+        Vertex list is the subset [0,N]x[0,N]x[0,N] where x + y + z = N
+        Disregard z when calculating index since it is determined entirely by x and y.
+        */
+        let x_offset = (v.x * (2 * (N + 1) as i32 + 1 - v.x) / 2) as usize;
+        let y_offset = v.y as usize;
+        
+        x_offset + y_offset
+    }
+    
+    /// Gets the index of the given vertex in this subdivision's list of vertices using [compute_vertex_index].
+    pub fn vertex_index(&self, v: IVec3) -> Option<usize> {
+        Self::compute_vertex_index(v)
+    }
+    
+    /// Gets the index of the given vertex in this subdivision's list of vertices using
+    /// [compute_vertex_index_unchecked].
+    pub fn vertex_index_unchecked(&self, v: IVec3) -> usize {
+        Self::compute_vertex_index_unchecked(v)
+    }
 }
