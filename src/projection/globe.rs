@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::interpolation::slerp::slerp_3;
 use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
-use crate::subdivision::subdivided_triangle::SubdividedTriangle;
+use crate::subdivision::subdivided_triangle::{n_vertices, SubdividedTriangle};
 
 const fn max(a: u32, b: u32) -> u32 {
     if a > b {
@@ -297,14 +297,14 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     /// Returns the number of faces in the specified polyhedron.
-    pub fn count_faces(&self) -> usize {
+    pub const fn count_faces(&self) -> usize {
         self.faces.len()
     }
     
-    /// Generates a Goldberg polyhedron with an optional radius (default of 1.0). This is the most expensive operation
-    /// as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries between
-    /// faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to only
-    /// compute one and may be implemented in the future.
+    /// Generates vertices of a Goldberg polyhedron with an optional radius (default of 1.0). This is the most expensive
+    /// operation as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries
+    /// between faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to
+    /// only compute one and may be implemented in the future.
     pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
         let radius = r.unwrap_or(1.0);
         

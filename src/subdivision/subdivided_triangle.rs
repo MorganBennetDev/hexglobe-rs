@@ -168,7 +168,12 @@ impl<const N: u32> SubdividedTriangle<N> {
     /// Indices of all triangles which have at least one vertex lying along the `vw` edge (`x=0` in barycentric
     /// coordinates) of the parent triangle sorted by descending centroid `y` coordinate.
     pub fn vw(&self) -> Vec<usize> {
-        self.row(0).collect::<Vec<_>>()
+        (0..N as usize)
+            .rev()
+            .interleave(
+                (Self::N_TRIANGLES_UP..(Self::N_TRIANGLES_UP + N as usize - 1)).rev()
+            )
+            .collect::<Vec<_>>()
     }
     
     /// Indices of all triangles which have at least one vertex lying along the `wu` edge (`y=0` in barycentric

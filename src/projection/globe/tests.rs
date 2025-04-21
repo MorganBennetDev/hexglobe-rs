@@ -221,6 +221,8 @@ fn adjacency() {
     adjacency_test::<3>();
     
     adjacency_test::<4>();
+    
+    adjacency_test::<5>();
 }
 
 #[test]
