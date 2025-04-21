@@ -115,6 +115,11 @@ impl<const N: u32> SubdividedTriangle<N> {
             ))
     }
     
+    /// Get the unnormalized barycentric coordinates of the vertex with index `i`.
+    pub fn vertex_denominator(&self, i: usize) -> IVec3 {
+        self.vertices[i].inner()
+    }
+    
     /// Index of the `u` vertex of this triangle (`(1,0,0)` in barycentric coordinates).
     pub const fn u(&self) -> usize {
         Self::N_TRIANGLES_UP - 1
@@ -164,19 +169,18 @@ impl<const N: u32> SubdividedTriangle<N> {
             .collect::<Vec<_>>()
     }
     
-    // Tuples representing undirected edges between triangles in the subdivision. Exploits the way triangles are
-    // ordered for efficient computation.
-    // pub fn adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
-    //     (0..((N - 1) as usize)).flat_map(|i|
-    //         (0..(N as usize - 1 - i))
-    //             .map(move |j| Self::N_TRIANGLES_UP + i + j)
-    //             .flat_map(move |j| [
-    //                 (j, j - (10 - i)),
-    //                 (j, j - (9 - i)),
-    //                 (j, j - 6)
-    //             ])
-    //     )
-    // }
+    /// Tuples representing undirected edges between vertices in the subdivision.
+    pub fn vertex_adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
+        self.triangles.iter()
+            .flat_map(|t| [
+                (t.u, t.v),
+                (t.v, t.w),
+                (t.w, t.u)
+            ])
+            .map(|(a, b)| (a.min(b), a.max(b)))
+            .unique()
+    }
+    
     /// Takes in a vertex which lies in the interior of this triangle and returns its index within the interior. Used to
     /// compute offsets in [ExactGlobe::adjacency] for faces that do not lie along edges of the seed polyhedron. Returns
     /// `None` if the vertex lies along an edge and [compute_vertex_interior_index_unchecked] otherwise.
