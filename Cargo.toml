@@ -47,6 +47,10 @@ harness = false
 name = "projection"
 harness = false
 
+[[bench]]
+name = "adjacency"
+harness = false
+
 [[example]]
 name = "bevy"
 path = "examples/bevy.rs"
