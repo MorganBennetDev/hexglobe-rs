@@ -1,6 +1,7 @@
 use glam::{Mat3, Vec3};
 use crate::subdivision::triangle::Triangle;
 
+#[derive(Clone)]
 enum Face {
     Base(Triangle<Vec3>),
     Symmetry(usize, Mat3)
@@ -50,7 +51,7 @@ impl<const N: u32> Seed<N> {
         }
         
         // Shorthand macro for defining a face which is the same as another face rotated about some axis.
-        macro_rules! transform {
+        macro_rules! rotation {
             ($i: expr, $j: expr, $r: expr) => {
                 Face::Symmetry($i, Mat3::from_axis_angle(
                     vertices[$j],
@@ -59,31 +60,32 @@ impl<const N: u32> Seed<N> {
             };
         }
         
-        let faces = vec![
+        // ((0.5, 0, c0), (c0, -0.5, 0), (0, -c0, 0.5)) -> ((0, -c0, -0.5), (0, -c0, 0.5), (c0, -0.5, 0))
+        let mut faces = vec![
             // Top
-            triangle!(   0,  5,  10 ), // 0
-            transform!(  0,  3,  72 ), // 1
-            transform!(  0,  3, 144 ), // 2
-            transform!(  0,  3, 216 ), // 3
-            transform!(  0,  3, 288 ), // 4
+            triangle!(  0,  5,  10 ), // 0
+            rotation!(  0,  3,  72 ), // 1
+            rotation!(  0,  3, 144 ), // 2
+            rotation!(  0,  3, 216 ), // 3
+            rotation!(  0,  3, 288 ), // 4
             // Upper middle
-            triangle!(  11, 10,   5 ), // 5
-            transform!(  5,  3,  72 ), // 6
-            transform!(  5,  3, 144 ), // 7
-            transform!(  5,  3, 216 ), // 8
-            transform!(  5,  3, 288 ), // 9
+            triangle!( 11, 10,   5 ), // 5
+            rotation!(  5,  3,  72 ), // 6
+            rotation!(  5,  3, 144 ), // 7
+            rotation!(  5,  3, 216 ), // 8
+            rotation!(  5,  3, 288 ), // 9
             // Lower middle
-            triangle!(  10, 11,   7 ), // 10
-            transform!( 10,  3,  72 ), // 11
-            transform!( 10,  3, 144 ), // 12
-            transform!( 10,  3, 216 ), // 13
-            transform!( 10,  3, 288 ), // 14
+            triangle!( 10, 11,   7 ), // 10
+            rotation!( 10,  3,  72 ), // 11
+            rotation!( 10,  3, 144 ), // 12
+            rotation!( 10,  3, 216 ), // 13
+            rotation!( 10,  3, 288 ), // 14
             // Bottom
-            triangle!(   3,  7,  11 ), // 15
-            transform!( 15,  3,  72 ), // 16
-            transform!( 15,  3, 144 ), // 17
-            transform!( 15,  3, 216 ), // 18
-            transform!( 15,  3, 288 ), // 19
+            triangle!(  3,  7,  11 ), // 15
+            rotation!( 15,  3,  72 ), // 16
+            rotation!( 15,  3, 144 ), // 17
+            rotation!( 15,  3, 216 ), // 18
+            rotation!( 15,  3, 288 ), // 19
         ];
         
         Self {

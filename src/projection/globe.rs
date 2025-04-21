@@ -203,12 +203,12 @@ impl<const N: u32> ExactGlobe<N> {
             .cartesian_product(face_vertices_iter)
             .map(|(face, ((a0, b0), (a1, b1), (a2, b2)))| {
                 ExactFace::Hexagon([
-                    PackedIndex::new(face, b0),
-                    PackedIndex::new(face, b1),
-                    PackedIndex::new(face, b2),
-                    PackedIndex::new(face, a2),
-                    PackedIndex::new(face, a1),
                     PackedIndex::new(face, a0),
+                    PackedIndex::new(face, a1),
+                    PackedIndex::new(face, a2),
+                    PackedIndex::new(face, b2),
+                    PackedIndex::new(face, b1),
+                    PackedIndex::new(face, b0),
                 ])
             })
     }
@@ -326,6 +326,7 @@ impl<const N: u32> ExactGlobe<N> {
         base.iter()
             .cloned()
             .chain(
+                // Vertices which are obtained via transformations of the others.
                 base.iter()
                     .cartesian_product(self.seed.symmetries())
                     .filter(|((i, _), (_, b, _))| i.face() == *b)
