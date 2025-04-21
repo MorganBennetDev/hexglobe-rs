@@ -18,6 +18,29 @@ const fn compute_vertex_index_unchecked(n: u32, v: IVec3) -> usize {
     x_offset + y_offset
 }
 
+/// The total number of triangles at subdivision level `n`.
+pub const fn n_triangles(n: u32) -> usize {
+    (n * n) as usize
+}
+
+/// The total number of vertices at subdivision level `n`.
+pub const fn n_vertices(n: u32) -> usize {
+    ((n + 1) * (n + 2) / 2) as usize
+}
+
+/// The number of "upward pointing" triangles (`u.x > v.x`, `u.x > w.x`, and `v.x = w.x`) at subdivision level `n`. Used
+/// for optimization purposes.
+pub const fn n_triangles_up(n: u32) -> usize {
+    (n * (n + 1) / 2) as usize
+}
+
+
+/// The number of "downward pointing" triangles (complement of upward facing set) at subdivision level `n`. Used for
+/// optimization purposes.
+pub const fn n_triangles_down(n: u32) -> usize {
+    (n * (n - 1) / 2) as usize
+}
+
 /// Represents a triangle which has been subdivided `N` times using rational barycentric coordinates for precision.
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
@@ -26,15 +49,10 @@ pub struct SubdividedTriangle<const N: u32> {
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
-    /// The total number of triangles in the subdivision.
-    pub const N_TRIANGLES: usize = (N * N) as usize;
-    /// The total number of vertices in the subdivision.
-    pub const N_VERTICES: usize = ((N + 1) * (N + 2) / 2) as usize;
-    /// The number of "upward pointing" triangles (`u.x > v.x`, `u.x > w.x`, and `v.x = w.x`). Used for optimization
-    /// purposes.
-    const N_TRIANGLES_UP: usize = (N * (N + 1) / 2) as usize;
-    /// The number of "downward pointing" triangles (complement of upward facing set). Used for optimization purposes.
-    const N_TRIANGLES_DOWN: usize = (N * (N - 1) / 2) as usize;
+    pub const N_TRIANGLES: usize = n_triangles(N);
+    pub const N_VERTICES: usize = n_vertices(N);
+    const N_TRIANGLES_UP: usize = n_triangles_up(N);
+    const N_TRIANGLES_DOWN: usize = n_triangles_down(N);
     
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
@@ -76,7 +94,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         }
     }
     
-    fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
+    const fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
         if i >= N as usize {
             0..0
         } else {
@@ -87,7 +105,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         }
     }
     
-    fn downward_row(&self, i: usize) -> impl Iterator<Item = usize> {
+    const fn downward_row(&self, i: usize) -> impl Iterator<Item = usize> {
         if i >= N as usize - 1 {
             0..0
         } else {
