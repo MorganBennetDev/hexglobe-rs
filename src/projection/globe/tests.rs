@@ -97,7 +97,9 @@ fn difference_to_vec(d: &Difference<(usize, usize), RandomState>) -> Vec<(usize,
 
 fn adjacency_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
-    let computed_adjacency = globe.adjacency().into_iter().collect::<HashSet<_>>();
+    let computed_adjacency = globe.adjacency().into_iter()
+        .map(|(a, b)| (a.min(b), a.max(b)))
+        .collect::<HashSet<_>>();
     let expected_adjacency = globe.faces.iter()
         .enumerate()
         .flat_map(|(i, f)| match f {

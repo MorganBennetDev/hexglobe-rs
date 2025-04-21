@@ -194,14 +194,23 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     /// Tuples representing undirected edges between vertices in the subdivision.
     pub fn vertex_adjacency(&self) -> impl Iterator<Item = (usize, usize)> {
-        self.triangles.iter()
-            .flat_map(|t| [
-                (t.u, t.v),
-                (t.v, t.w),
-                (t.w, t.u)
-            ])
-            .map(|(a, b)| (a.min(b), a.max(b)))
-            .unique()
+        (0..N as usize)
+            .flat_map(|x| {
+                let l = N as usize + 1 - x;
+                let start = Self::N_VERTICES - l * (l + 1) / 2;
+                let end = start + l;
+                
+                (start..end)
+                    .tuple_windows::<(_, _)>()
+                    .chain(
+                        (start..(end - 1))
+                            .zip((start + l)..(end + l - 1))
+                    )
+                    .chain(
+                        ((start + 1)..end)
+                            .zip((start + l)..(end + l - 1))
+                    )
+            })
     }
     
     /// Takes in a vertex which lies in the interior of this triangle and returns its index within the interior. Used to

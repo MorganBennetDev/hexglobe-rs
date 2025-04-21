@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::interpolation::slerp::slerp_3;
 use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
-use crate::subdivision::subdivided_triangle::{n_vertices, SubdividedTriangle};
+use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
 const fn max(a: u32, b: u32) -> u32 {
     if a > b {
@@ -41,7 +41,6 @@ pub struct ExactGlobe<const N: u32> {
 impl<const N: u32> ExactGlobe<N> {
     const SEED_N_VERTICES: usize = 12;
     const SEED_N_EDGES: usize = 30;
-    const SEED_N_FACES: usize = 20;
     const N_FACES_PER_VERTEX: usize = 1;
     const N_FACES_PER_EDGE: usize = N as usize - 1;
     const N_FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
@@ -223,22 +222,22 @@ impl<const N: u32> ExactGlobe<N> {
                 0..5 => 0,
                 5..10 => 7 + f % 5,
                 10..15 => 2 + f % 5,
-                15..20 => 1,
-                _ => unreachable!()
+                // 15..20
+                _ => 1,
             },
             (0, _, 0) => match f { // v
                 0..5 => 2 + (f + 4) % 5,
                 5..10 => 2 + f % 5,
                 10..15 => 7 + f % 5,
-                15..20 => 7 + (f + 1) % 5,
-                _ => unreachable!()
+                // 15..20
+                _ => 7 + (f + 1) % 5,
             },
             (0, 0, _) => match f { // w
                 0..5 => 2 + f,
                 5..10 => 2 + (f + 4) % 5,
                 10..15 => 7 + (f + 1) % 5,
-                15..20 => 7 + f % 5,
-                _ => unreachable!()
+                // 15..20
+                _ => 7 + f % 5,
             },
             // Edges
             (_, _, 0) | (0, _, _) | (_, 0, _) => {
@@ -249,23 +248,23 @@ impl<const N: u32> ExactGlobe<N> {
                         0..5 => offset + ((f + 4) % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
                         5..10 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
                         10..15 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
-                        15..20 => offset + (25 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
-                        _ => unreachable!()
+                        // 15..20
+                        _ => offset + (25 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
                     },
                     (0, _, _) => match f { // vw
                         0..5 => offset + (5 + f) * Self::N_FACES_PER_EDGE + v.z as usize,
                         5..10 => offset + (5 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
                         10..15 => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
-                        15..20 => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
-                        _ => unreachable!()
+                        // 15..20
+                        _ => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
                     },
                     // This is just (_, 0, _), but the interpreter doesn't know that other cases aren't possible.
                     _ => match f { // wu
                         0..5 => offset + f * Self::N_FACES_PER_EDGE + v.x as usize,
                         5..10 => offset + (15 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
                         10..15 => offset + (15 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
-                        15..20 => offset + (25 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
-                        _ => unreachable!()
+                        // 15..20
+                        _ => offset + (25 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
                     }
                 }
             },
@@ -283,16 +282,18 @@ impl<const N: u32> ExactGlobe<N> {
         }
     }
     
-    /// [Vec] of undirected edges between adjacent faces.
+    /// [Vec] of undirected edges between adjacent faces represented by tuples of face indices. The output will not
+    /// contain duplicate edges but no other guarantees are made. Edges may appear in any order in the list and edge
+    /// endpoints may appear in any order in the corresponding tuple.
     pub fn adjacency(&self) -> Vec<(usize, usize)> {
-        self.subdivision.vertex_adjacency()
-            .cartesian_product(0..20)
-            .map(|((a, b), f)| (
-                self.vertex_index_to_face_index(f, a),
-                self.vertex_index_to_face_index(f, b)
+        let vertex_adjacency = self.subdivision.vertex_adjacency().collect::<Vec<_>>();
+        
+        (0..20)
+            .cartesian_product(vertex_adjacency.iter())
+            .map(|(f, (a, b))| (
+                self.vertex_index_to_face_index(f, *a),
+                self.vertex_index_to_face_index(f, *b)
             ))
-            .map(|(a, b)| (a.min(b), a.max(b)))
-            .unique()
             .collect::<Vec<_>>()
     }
     
