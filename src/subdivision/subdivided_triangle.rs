@@ -7,11 +7,22 @@ use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
 use crate::subdivision::triangle::Triangle;
 
+const fn compute_vertex_index_unchecked(n: u32, v: IVec3) -> usize {
+    /*
+    Vertex list is the subset [0,N]x[0,N]x[0,N] where x + y + z = N
+    Disregard z when calculating index since it is determined entirely by x and y.
+    */
+    let x_offset = (v.x * (2 * (n + 1) as i32 + 1 - v.x) / 2) as usize;
+    let y_offset = v.y as usize;
+    
+    x_offset + y_offset
+}
+
 /// Represents a triangle which has been subdivided `N` times using rational barycentric coordinates for precision.
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
     pub vertices: Vec<ImplicitDenominator<IVec3, N>>,
-    triangles: Vec<Triangle<usize>>,
+    pub triangles: Vec<Triangle<usize>>,
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
@@ -67,23 +78,23 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
         if i >= N as usize {
-            (0..0).rev()
+            0..0
         } else {
             let k = N as usize - i;
             let start = Self::N_TRIANGLES_UP - k * (k + 1) / 2;
             let end = start + k;
-            (start..end).rev()
+            start..end
         }
     }
     
     fn downward_row(&self, i: usize) -> impl Iterator<Item = usize> {
         if i >= N as usize - 1 {
-            (0..0).rev()
+            0..0
         } else {
             let k = N as usize - 1 - i;
             let start = Self::N_TRIANGLES_UP + Self::N_TRIANGLES_DOWN - k * (k + 1) / 2;
             let end = start + k;
-            (start..end).rev()
+            start..end
         }
     }
     
@@ -105,17 +116,17 @@ impl<const N: u32> SubdividedTriangle<N> {
     }
     
     /// Index of the `u` vertex of this triangle (`(1,0,0)` in barycentric coordinates).
-    pub fn u(&self) -> usize {
+    pub const fn u(&self) -> usize {
         Self::N_TRIANGLES_UP - 1
     }
     
     /// Index of the `v` vertex of this triangle (`(0,1,0)` in barycentric coordinates).
-    pub fn v(&self) -> usize {
+    pub const fn v(&self) -> usize {
         N as usize - 1
     }
     
     /// Index of the `w` vertex of this triangle (`(0,0,1)` in barycentric coordinates).
-    pub fn w(&self) -> usize {
+    pub const fn w(&self) -> usize {
         0
     }
     
@@ -166,11 +177,29 @@ impl<const N: u32> SubdividedTriangle<N> {
     //             ])
     //     )
     // }
+    /// Takes in a vertex which lies in the interior of this triangle and returns its index within the interior. Used to
+    /// compute offsets in [ExactGlobe::adjacency] for faces that do not lie along edges of the seed polyhedron. Returns
+    /// `None` if the vertex lies along an edge and [compute_vertex_interior_index_unchecked] otherwise.
+    pub const fn compute_vertex_interior_index(v: IVec3) -> Option<usize> {
+        if v.x == 0 || v.y == 0 || v.z == 0 {
+            None
+        } else {
+            Some(Self::compute_vertex_interior_index_unchecked(v))
+        }
+    }
+    
+    /// Computes the index of a vertex in the interior of a subdivision without first checking that the vertex is in the
+    /// interior. Use only if you can guarantee inputs will be valid, otherwise use [compute_vertex_interior_index],
+    /// which will handle input validation for you.
+    pub const fn compute_vertex_interior_index_unchecked(v: IVec3) -> usize {
+        compute_vertex_index_unchecked(N - 3, IVec3::new(v.x - 1, v.y - 1, v.z - 1))
+    }
+    
     /// Computes the index of the given vertex in a subdivision's list of vertices. Uses knowledge of how the vertex
     /// list is structured to be faster than searching the [Vec]. Performs input validation to ensure vertex coordinates
     /// are valid. To skip input validation, use [compute_vertex_index_unchecked]. This is a static method so that it
     /// can be used in [new] to eliminate expensive lookups while constructing triangles.
-    pub fn compute_vertex_index(v: IVec3) -> Option<usize> {
+    pub const fn compute_vertex_index(v: IVec3) -> Option<usize> {
         if v.x < 0 || v.y < 0 || v.z < 0 || v.x + v.y + v.z != N as i32 {
             None
         } else {
@@ -179,26 +208,33 @@ impl<const N: u32> SubdividedTriangle<N> {
     }
     
     /// Computes the index of the given vertex in a subdivision's list of vertices without checking if the coordinates
-    /// are valid.
+    /// are valid. Use only if you can guarantee inputs will be valid, otherwise use [compute_vertex_index], which will
+    /// handle input validation for you.
     pub const fn compute_vertex_index_unchecked(v: IVec3) -> usize {
-        /*
-        Vertex list is the subset [0,N]x[0,N]x[0,N] where x + y + z = N
-        Disregard z when calculating index since it is determined entirely by x and y.
-        */
-        let x_offset = (v.x * (2 * (N + 1) as i32 + 1 - v.x) / 2) as usize;
-        let y_offset = v.y as usize;
-        
-        x_offset + y_offset
+        compute_vertex_index_unchecked(N, v)
     }
     
     /// Gets the index of the given vertex in this subdivision's list of vertices using [compute_vertex_index].
-    pub fn vertex_index(&self, v: IVec3) -> Option<usize> {
+    pub const fn vertex_index(&self, v: IVec3) -> Option<usize> {
         Self::compute_vertex_index(v)
     }
     
     /// Gets the index of the given vertex in this subdivision's list of vertices using
-    /// [compute_vertex_index_unchecked].
-    pub fn vertex_index_unchecked(&self, v: IVec3) -> usize {
-        Self::compute_vertex_index_unchecked(v)
+    /// [compute_vertex_index_unchecked]. Use only if you can guarantee inputs will be valid, otherwise use
+    /// [vertex_index], which will handle input validation for you.
+    pub const fn vertex_index_unchecked(&self, v: IVec3) -> usize {
+        compute_vertex_index_unchecked(N, v)
+    }
+    
+    /// Converts the given vertex index to an interior index using [compute_vertex_interior_index].
+    pub const fn vertex_interior_index(&self, v: IVec3) -> Option<usize> {
+        Self::compute_vertex_interior_index(v)
+    }
+    
+    /// Converts the given vertex index to an interior index using [compute_vertex_interior_index_unchecked]. Use this
+    /// method only if you can guarantee inputs will be valid, otherwise use [vertex_interior_index], which will handle
+    /// input validation for you.
+    pub const fn vertex_interior_index_unchecked(&self, v: IVec3) -> usize {
+        Self::compute_vertex_interior_index_unchecked(v)
     }
 }
