@@ -1,6 +1,6 @@
 [package]
 name = "hexglobe"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Library to generate hexagonal tessellations of a sphere quickly and accurately."
@@ -50,7 +50,3 @@ harness = false
 [[bench]]
 name = "adjacency"
 harness = false
-
-[[example]]
-name = "bevy"
-path = "examples/bevy.rs"
