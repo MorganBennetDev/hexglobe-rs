@@ -61,7 +61,7 @@ impl<const N: u32> Seed<N> {
         }
         
         // ((0.5, 0, c0), (c0, -0.5, 0), (0, -c0, 0.5)) -> ((0, -c0, -0.5), (0, -c0, 0.5), (c0, -0.5, 0))
-        let mut faces = vec![
+        let faces = vec![
             // Top
             triangle!(  0,  5,  10 ), // 0
             rotation!(  0,  3,  72 ), // 1
