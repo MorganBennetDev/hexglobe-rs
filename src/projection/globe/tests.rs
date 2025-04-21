@@ -1,3 +1,8 @@
+use std::collections::hash_set::Difference;
+use std::collections::HashSet;
+use std::hash::RandomState;
+use assert2::check;
+use itertools::Itertools;
 use crate::projection::globe::{ExactFace, ExactGlobe};
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
@@ -14,22 +19,22 @@ fn face_creation_test_hexagons<const N: u32>() {
     let n_edge_faces = E * (N - 1) as usize;
     let n_face_faces = F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     
-    assert_eq!(edge_faces, n_edge_faces, "Incorrect number of hexagons crossing edges for icosahedron with {:?} subdivisions.", N);
-    assert_eq!(face_faces, n_face_faces, "Incorrect number of hexagons within faces for icosahedron with {:?} subdivisions.", N);
+    check!(edge_faces == n_edge_faces, "Incorrect number of hexagons crossing edges for icosahedron with {:?} subdivisions.", N);
+    check!(face_faces == n_face_faces, "Incorrect number of hexagons within faces for icosahedron with {:?} subdivisions.", N);
     
     let pentagon = ExactGlobe::<N>::edge_faces_from_template(&template).position(|v| match v {
         ExactFace::Pentagon(_) => true,
         _ => false
     });
     
-    assert_eq!(pentagon, None, "Found pentagon crossing edge for icosahedron with {:?} subdivisions.", N);
+    check!(pentagon == None, "Found pentagon crossing edge for icosahedron with {:?} subdivisions.", N);
     
     let pentagon = ExactGlobe::<N>::face_faces_from_template(&template).position(|v| match v {
         ExactFace::Pentagon(_) => true,
         _ => false
     });
     
-    assert_eq!(pentagon, None, "Found pentagon within face for icosahedron with {:?} subdivisions.", N);
+    check!(pentagon == None, "Found pentagon within face for icosahedron with {:?} subdivisions.", N);
 }
 
 fn face_creation_test_pentagons<const N: u32>() {
@@ -38,14 +43,14 @@ fn face_creation_test_pentagons<const N: u32>() {
     
     let n_vertex_faces = V;
     
-    assert_eq!(vertex_faces, n_vertex_faces, "Incorrect number of pentagons on vertices for icosahedron with {:?} subdivisions.", N);
+    check!(vertex_faces == n_vertex_faces, "Incorrect number of pentagons on vertices for icosahedron with {:?} subdivisions.", N);
     
     let hexagon = ExactGlobe::<N>::vertex_faces_from_template(&template).position(|v| match v {
         ExactFace::Hexagon(_) => true,
         _ => false
     });
     
-    assert_eq!(hexagon, None, "Found hexagonal face lying on a vertex for icosahedron with {:?} subdivisions.", N);
+    check!(hexagon == None, "Found hexagonal face lying on a vertex for icosahedron with {:?} subdivisions.", N);
 }
 
 fn basic_count_test<const N: u32>() {
@@ -54,69 +59,179 @@ fn basic_count_test<const N: u32>() {
     let n_faces = V + E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     let n_vertices = globe.vertices_f32(None).keys().count();
     
-    assert_eq!(n_vertices, n_vertices_expected, "Incorrect number of vertices in icosahedron with {:?} subdivisions.", N);
-    assert_eq!(globe.faces.len(), n_faces, "Incorrect number of faces in icosahedron with {:?} subdivisions.", N);
+    check!(n_vertices == n_vertices_expected, "Incorrect number of vertices in icosahedron with {:?} subdivisions.", N);
+    check!(globe.faces.len() == n_faces, "Incorrect number of faces in icosahedron with {:?} subdivisions.", N);
 }
 
 fn hexagon_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     let expected = E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     
-    let (hexagons, _): (Vec<_>, Vec<_>) = globe.faces.iter()
-        .partition(|f| match f {
+    let hexagons = globe.faces.iter()
+        .filter(|f| match f {
             ExactFace::Hexagon(_) => true,
             ExactFace::Pentagon(_) => false
-        });
-    assert_eq!(hexagons.len(), expected, "Incorrect number of hexagons in icosahedron with {:?} subdivisions.", N);
+        })
+        .collect_vec();
+    check!(hexagons.len() == expected, "Incorrect number of hexagons in icosahedron with {:?} subdivisions.", N);
 }
 
 fn pentagon_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     
-    let (_, pentagons): (Vec<_>, Vec<_>) = globe.faces.iter()
-        .partition(|f| match f {
-            ExactFace::Hexagon(_) => true,
-            ExactFace::Pentagon(_) => false
-        });
-    assert_eq!(pentagons.len(), V, "Incorrect number of pentagons in icosahedron with {:?} subdivisions.", N);
+    let pentagons = globe.faces.iter()
+        .filter(|f| match f {
+            ExactFace::Hexagon(_) => false,
+            ExactFace::Pentagon(_) => true
+        })
+        .collect_vec();
+    check!(pentagons.len() == V, "Incorrect number of pentagons in icosahedron with {:?} subdivisions.", N);
+}
+
+fn difference_to_vec(d: &Difference<(usize, usize), RandomState>) -> Vec<(usize, usize)> {
+    d.clone()
+        .sorted_by_key(|(a, b)| b * 1000 + a)
+        .cloned()
+        .collect::<Vec<_>>()
+}
+
+fn adjacency_test<const N: u32>() {
+    let globe = ExactGlobe::<N>::new();
+    let computed_adjacency = globe.adjacency().into_iter().collect::<HashSet<_>>();
+    let expected_adjacency = globe.faces.iter()
+        .enumerate()
+        .flat_map(|(i, f)| match f {
+            ExactFace::Pentagon(v) => vec![
+                (i, (v[0], v[1])),
+                (i, (v[1], v[2])),
+                (i, (v[2], v[3])),
+                (i, (v[3], v[4])),
+                (i, (v[4], v[0]))
+            ],
+            ExactFace::Hexagon(v) => vec![
+                (i, (v[0], v[1])),
+                (i, (v[1], v[2])),
+                (i, (v[2], v[3])),
+                (i, (v[3], v[4])),
+                (i, (v[4], v[5])),
+                (i, (v[5], v[0]))
+            ]
+        })
+        .map(|(i, (a, b))| (i, (a.min(b), a.max(b))))
+        .unique()
+        .tuple_combinations::<(_, _)>()
+        .filter_map(|((i, (a, b)), (j, (c, d)))| if (a == c && b == d) || (a == d && b == c) {
+            Some((i, j))
+        } else {
+            None
+        })
+        .map(|(a, b)| (a.min(b), a.max(b)))
+        .collect::<HashSet<_>>();
+    
+    check!(computed_adjacency.is_subset(&expected_adjacency),
+        "Not all computed adjacencies are real for globe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
+        N,
+        computed_adjacency.iter().count(),
+        expected_adjacency.iter().count(),
+        difference_to_vec(&computed_adjacency.difference(&expected_adjacency)), difference_to_vec(&expected_adjacency.difference(&computed_adjacency)));
+    check!(expected_adjacency.is_subset(&computed_adjacency),
+        "Not all adjacencies are computed for globe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
+        N,
+        computed_adjacency.iter().count(),
+        expected_adjacency.iter().count(),
+        difference_to_vec(&computed_adjacency.difference(&expected_adjacency)), difference_to_vec(&expected_adjacency.difference(&computed_adjacency)));
+}
+
+fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize, expected: usize) {
+    let globe = ExactGlobe::<N>::new();
+    
+    let actual = globe.vertex_index_to_face_index(f, i);
+    let actual_face = globe.faces[actual];
+    let matches = match actual_face {
+        ExactFace::Pentagon(v) => v.into_iter().collect::<Vec<_>>(),
+        ExactFace::Hexagon(v) => v.into_iter().collect::<Vec<_>>()
+    }.iter()
+        .map(|v| globe.subdivision.triangles[v.subdivision()].clone())
+        .position(|t| t.u == i || t.v == i || t.w == i);
+    
+    check!(matches.is_some(), "Did not get expected face index for globe with {:?} subdivisions.", N);
 }
 
 #[test]
 fn basic_counts() {
     basic_count_test::<1>();
+    
     basic_count_test::<2>();
+    
     basic_count_test::<3>();
+    
     basic_count_test::<4>();
 }
 
 #[test]
 fn hexagon_counts_total() {
     hexagon_count_test::<1>();
+    
     hexagon_count_test::<2>();
+    
     hexagon_count_test::<3>();
+    
     hexagon_count_test::<4>();
 }
 
 #[test]
 fn pentagon_counts_total() {
     pentagon_count_test::<1>();
+    
     pentagon_count_test::<2>();
+    
     pentagon_count_test::<3>();
+    
     pentagon_count_test::<4>();
 }
 
 #[test]
 fn hexagon_counts_subdivision() {
     face_creation_test_hexagons::<1>();
+    
     face_creation_test_hexagons::<2>();
+    
     face_creation_test_hexagons::<3>();
+    
     face_creation_test_hexagons::<4>();
 }
 
 #[test]
 fn pentagon_counts_subdivision() {
     face_creation_test_pentagons::<1>();
+    
     face_creation_test_pentagons::<2>();
+    
     face_creation_test_pentagons::<3>();
+    
     face_creation_test_pentagons::<4>();
+}
+
+#[test]
+fn adjacency() {
+    adjacency_test::<1>();
+    
+    adjacency_test::<2>();
+    
+    adjacency_test::<3>();
+    
+    adjacency_test::<4>();
+}
+
+#[test]
+fn vertex_to_face_index() {
+    // Edge
+    vertex_index_to_face_index_test::<2>(1, 2, 2);
+    // Interior
+    vertex_index_to_face_index_test::<3>(11, 5, V + E * 2 + 11);
+    
+    vertex_index_to_face_index_test::<4>(0, 6, V + E * 3);
+    vertex_index_to_face_index_test::<4>(1, 7, V + E * 3 + 3 + 1);
+    vertex_index_to_face_index_test::<4>(2, 10, V + E * 3 + 6 + 2);
+    vertex_index_to_face_index_test::<4>(1, 1, V + 18 + 0)
 }

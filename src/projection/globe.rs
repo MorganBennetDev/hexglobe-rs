@@ -9,7 +9,15 @@ use crate::projection::packed_index::PackedIndex;
 use crate::projection::seed::Seed;
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
 
-#[derive(Debug)]
+const fn max(a: u32, b: u32) -> u32 {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 enum ExactFace {
     Pentagon([PackedIndex; 5]),
     Hexagon([PackedIndex; 6])
@@ -31,6 +39,12 @@ pub struct ExactGlobe<const N: u32> {
 }
 
 impl<const N: u32> ExactGlobe<N> {
+    const SEED_N_VERTICES: usize = 12;
+    const SEED_N_EDGES: usize = 30;
+    const SEED_N_FACES: usize = 20;
+    const N_FACES_PER_VERTEX: usize = 1;
+    const N_FACES_PER_EDGE: usize = N as usize - 1;
+    const N_FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
     /// Initializes the data for a new polyhedron. This is very cheap as all the expensive computations are done during
     /// conversion to floating point coordinates.
     pub fn new() -> Self {
@@ -72,41 +86,48 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     fn edge_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
-        let t_t = template.wu().into_iter()
-            .zip(template.uv().into_iter().rev())
-            .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((0..5).map(|face| (face, (face + 1) % 5)));
-        
-        let t_um = template.vw().into_iter()
+        let vw_wv = template.vw().into_iter()
             .zip(template.vw().into_iter().rev())
             .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((0..5).map(|face| (face, face + 5)));
+            .step_by(2);
         
-        let um_lm = template.uv().into_iter()
-            .zip(template.uv().into_iter().rev())
-            .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((5..10).map(|face| (face, face + 5)));
+        let t_t = (0..5).map(|face| (face, (face + 1) % 5))
+            .cartesian_product(
+                template.wu().into_iter()
+                    .zip(template.uv().into_iter().rev())
+                    .tuple_windows::<(_, _, _)>()
+                    .step_by(2)
+            );
         
-        let lm_um = template.wu().into_iter()
-            .zip(template.wu().into_iter().rev())
-            .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((10..15).map(|face| (face, 5 + (face + 1) % 5)));
+        let t_um = (0..5).map(|face| (face, face + 5))
+            .cartesian_product(vw_wv.clone());
         
-        let lm_b = template.vw().into_iter()
-            .zip(template.vw().into_iter().rev())
-            .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((10..15).map(|face| (face, face + 5)));
+        let um_lm = (5..10).map(|face| (face, face + 5))
+            .cartesian_product(
+                template.uv().into_iter()
+                    .zip(template.uv().into_iter().rev())
+                    .tuple_windows::<(_, _, _)>()
+                    .step_by(2)
+            );
         
-        let b_b = template.uv().into_iter()
-            .zip(template.wu().into_iter().rev())
-            .tuple_windows::<(_, _, _)>()
-            .step_by(2)
-            .cartesian_product((15..20).map(|face| (face, 15 + (face + 1) % 5)));
+        let lm_um = (10..15).map(|face| (face, 5 + (face + 1) % 5))
+            .cartesian_product(
+                template.wu().into_iter()
+                    .zip(template.wu().into_iter().rev())
+                    .tuple_windows::<(_, _, _)>()
+                    .step_by(2)
+            );
+        
+        let lm_b = (10..15).map(|face| (face, face + 5))
+            .cartesian_product(vw_wv);
+        
+        let b_b = (15..20).map(|face| (face, 15 + (face + 1) % 5))
+            .cartesian_product(
+                template.uv().into_iter()
+                    .zip(template.wu().into_iter().rev())
+                    .tuple_windows::<(_, _, _)>()
+                    .step_by(2)
+            );
         
         t_t
             .chain(t_um)
@@ -114,7 +135,7 @@ impl<const N: u32> ExactGlobe<N> {
             .chain(lm_um)
             .chain(lm_b)
             .chain(b_b)
-            .map(|(((a0, b0), (a1, b1), (a2, b2)), (face_a, face_b))| ExactFace::Hexagon([
+            .map(|((face_a, face_b), ((a0, b0), (a1, b1), (a2, b2)))| ExactFace::Hexagon([
                 PackedIndex::new(face_a, a0),
                 PackedIndex::new(face_a, a1),
                 PackedIndex::new(face_a, a2),
@@ -166,7 +187,7 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     fn face_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
-        (0..N as usize)
+        let face_vertices_iter = (0..N as usize)
             .map(|i| template.row(i).collect::<Vec<_>>())
             .tuple_windows::<(_, _)>()
             .flat_map(|(r1, r2)|
@@ -175,19 +196,104 @@ impl<const N: u32> ExactGlobe<N> {
                     .zip(r2)
                     .tuple_windows::<(_, _, _)>()
                     .step_by(2)
-                    .cartesian_product(0..20)
-                    .map(|(((a0, b0), (a1, b1), (a2, b2)), face)| {
-                        ExactFace::Hexagon([
-                            PackedIndex::new(face, b0),
-                            PackedIndex::new(face, b1),
-                            PackedIndex::new(face, b2),
-                            PackedIndex::new(face, a2),
-                            PackedIndex::new(face, a1),
-                            PackedIndex::new(face, a0),
-                        ])
-                    })
                     .collect::<Vec<_>>()
-            )
+            );
+        
+        // Ensures that faces subdivided from the same seed face are near each other.
+        (0..20).into_iter()
+            .cartesian_product(face_vertices_iter)
+            .map(|(face, ((a0, b0), (a1, b1), (a2, b2)))| {
+                ExactFace::Hexagon([
+                    PackedIndex::new(face, b0),
+                    PackedIndex::new(face, b1),
+                    PackedIndex::new(face, b2),
+                    PackedIndex::new(face, a2),
+                    PackedIndex::new(face, a1),
+                    PackedIndex::new(face, a0),
+                ])
+            })
+    }
+    
+    fn vertex_index_to_face_index(&self, f: usize, i: usize) -> usize {
+        let v = self.subdivision.vertex_denominator(i);
+        
+        match (v.x, v.y, v.z) {
+            // Vertices
+            (_, 0, 0) => match f { // u
+                0..5 => 0,
+                5..10 => 7 + f % 5,
+                10..15 => 2 + f % 5,
+                15..20 => 1,
+                _ => unreachable!()
+            },
+            (0, _, 0) => match f { // v
+                0..5 => 2 + (f + 4) % 5,
+                5..10 => 2 + f % 5,
+                10..15 => 7 + f % 5,
+                15..20 => 7 + (f + 1) % 5,
+                _ => unreachable!()
+            },
+            (0, 0, _) => match f { // w
+                0..5 => 2 + f,
+                5..10 => 2 + (f + 4) % 5,
+                10..15 => 7 + (f + 1) % 5,
+                15..20 => 7 + f % 5,
+                _ => unreachable!()
+            },
+            // Edges
+            (_, _, 0) | (0, _, _) | (_, 0, _) => {
+                let offset = Self::SEED_N_VERTICES * Self::N_FACES_PER_VERTEX - 1;
+                
+                match (v.x, v.y, v.z) {
+                    (_, _, 0) => match f { // uv
+                        0..5 => offset + ((f + 4) % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
+                        5..10 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        10..15 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
+                        15..20 => offset + (25 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        _ => unreachable!()
+                    },
+                    (0, _, _) => match f { // vw
+                        0..5 => offset + (5 + f) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        5..10 => offset + (5 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        10..15 => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        15..20 => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        _ => unreachable!()
+                    },
+                    // This is just (_, 0, _), but the interpreter doesn't know that other cases aren't possible.
+                    _ => match f { // wu
+                        0..5 => offset + f * Self::N_FACES_PER_EDGE + v.x as usize,
+                        5..10 => offset + (15 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        10..15 => offset + (15 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
+                        15..20 => offset + (25 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        _ => unreachable!()
+                    }
+                }
+            },
+            // Faces
+            _ => {
+                let offset = Self::SEED_N_VERTICES * Self::N_FACES_PER_VERTEX +
+                    Self::SEED_N_EDGES * Self::N_FACES_PER_EDGE +
+                    f * Self::N_FACES_PER_FACE;
+                
+                // Index of vertex i in the set of vertices excluding edges.
+                let j = self.subdivision.vertex_interior_index_unchecked(v);
+                
+                offset + j
+            }
+        }
+    }
+    
+    /// [Vec] of undirected edges between adjacent faces.
+    pub fn adjacency(&self) -> Vec<(usize, usize)> {
+        self.subdivision.vertex_adjacency()
+            .cartesian_product(0..20)
+            .map(|((a, b), f)| (
+                self.vertex_index_to_face_index(f, a),
+                self.vertex_index_to_face_index(f, b)
+            ))
+            .map(|(a, b)| (a.min(b), a.max(b)))
+            .unique()
+            .collect::<Vec<_>>()
     }
     
     /// Returns the number of faces in the specified polyhedron.
