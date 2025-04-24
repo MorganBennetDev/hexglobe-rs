@@ -41,6 +41,12 @@ pub const fn n_triangles_down(n: u32) -> usize {
     (n * (n - 1) / 2) as usize
 }
 
+/// The number of edges between vertices at subdivision level `n`. Used to allow efficient memory allocations in
+/// adjacency computations.
+pub const fn n_edges(n: u32) -> usize {
+    n_triangles_up(n) * 3
+}
+
 /// Represents a triangle which has been subdivided `N` times using rational barycentric coordinates for precision.
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
@@ -51,22 +57,22 @@ pub struct SubdividedTriangle<const N: u32> {
 impl<const N: u32> SubdividedTriangle<N> {
     pub const TRIANGLES: usize = n_triangles(N);
     pub const VERTICES: usize = n_vertices(N);
+    pub const EDGES: usize = n_edges(N);
     const TRIANGLES_UP: usize = n_triangles_up(N);
     const TRIANGLES_DOWN: usize = n_triangles_down(N);
     
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
         
+        let mut vertices = vec![ImplicitDenominator::new(IVec3::ZERO); Self::VERTICES];
         let axis = 0..(N + 1);
-        let vertices_iter = axis.clone()
+        axis.clone()
             .cartesian_product(axis.clone())
             .cartesian_product(axis.clone())
             .filter(|((x, y), z)| x + y + z == N)
-            .map(|((x, y), z)| ImplicitDenominator::wrap(IVec3::new(x as i32, y as i32, z as i32)));
-            
-        // Vertices are in ascending lexicographic order
-        let vertices = vertices_iter.clone()
-            .collect::<Vec<_>>();
+            .map(|((x, y), z)| ImplicitDenominator::wrap(IVec3::new(x as i32, y as i32, z as i32)))
+            .enumerate()
+            .for_each(|(i, v)| vertices[i] = v);
         
         let du = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 1, 0));
         let dv = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 0, 1));
@@ -85,8 +91,13 @@ impl<const N: u32> SubdividedTriangle<N> {
                 Self::compute_vertex_index_unchecked((v - du).inner()),
                 Self::compute_vertex_index_unchecked((v - dv).inner()),
             ));
-        let triangles = triangles_up.chain(triangles_down)
-            .collect::<Vec<_>>();
+        
+        let mut triangles = vec![Triangle::new(0, 0, 0); Self::TRIANGLES];
+        
+        triangles_up
+            .chain(triangles_down)
+            .enumerate()
+            .for_each(|(i, t)| triangles[i] = t);
         
         Self {
             vertices,
@@ -156,40 +167,51 @@ impl<const N: u32> SubdividedTriangle<N> {
     /// Indices of all triangles which have at least one vertex lying along the `uv` edge (`z=0` in barycentric
     /// coordinates) of the parent triangle sorted by descending centroid `x` coordinate.
     pub fn uv(&self) -> Vec<usize> {
-        (0..N as usize).into_iter()
-            .map(|i| Self::TRIANGLES_UP - i * (i + 1) / 2 - 1)
-            .interleave(
-                (0..(N as usize - 1)).into_iter()
-                    .map(|i| Self::TRIANGLES - i * (i + 1) / 2 - 1)
-            )
-            .collect::<Vec<_>>()
+        let mut edge = vec![0; 2 * N as usize - 1];
+        
+        for i in 0..N as usize {
+            edge[2 * i] = Self::TRIANGLES_UP - i * (i + 1) / 2 - 1;
+        }
+        
+        for i in 0..(N as usize - 1) {
+            edge[2 * i + 1] = Self::TRIANGLES - i * (i + 1) / 2 - 1;
+        }
+        
+        edge
     }
     
     /// Indices of all triangles which have at least one vertex lying along the `vw` edge (`x=0` in barycentric
     /// coordinates) of the parent triangle sorted by descending centroid `y` coordinate.
     pub fn vw(&self) -> Vec<usize> {
-        (0..N as usize)
-            .rev()
-            .interleave(
-                (Self::TRIANGLES_UP..(Self::TRIANGLES_UP + N as usize - 1)).rev()
-            )
-            .collect::<Vec<_>>()
+        let mut edge = vec![0; 2 * N as usize - 1];
+        
+        for i in 0..N as usize {
+            edge[2 * i] = (N as usize - 1) - i;
+        }
+        
+        for i in 0..(N as usize - 1) {
+            edge[2 * i + 1] = Self::TRIANGLES_UP + N as usize - 2 - i;
+        }
+        
+        edge
     }
     
     /// Indices of all triangles which have at least one vertex lying along the `wu` edge (`y=0` in barycentric
     /// coordinates) of the parent triangle sorted by descending centroid `z` coordinate.
     pub fn wu(&self) -> Vec<usize> {
-        let k = (0..N as usize).rev()
-            .map(|i| (i + 1) * (i + 2) / 2);
+        let mut edge = vec![0; 2 * N as usize - 1];
         
-        k.clone()
-            .map(|k_i| Self::TRIANGLES_UP - k_i)
-            .interleave(
-                k.clone()
-                    .skip(1)
-                    .map(|k_i| Self::TRIANGLES - k_i)
-            )
-            .collect::<Vec<_>>()
+        for i in 0..N as usize {
+            let k = N as usize - 1 - i;
+            edge[2 * i] = Self::TRIANGLES_UP - (k + 1) * (k + 2) / 2;
+        }
+        
+        for i in 1..N as usize {
+            let k = N as usize - 1 - i;
+            edge[2 * i - 1] = Self::TRIANGLES - (k + 1) * (k + 2) / 2;
+        }
+        
+        edge
     }
     
     /// Tuples representing undirected edges between vertices in the subdivision.
