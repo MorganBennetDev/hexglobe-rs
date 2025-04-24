@@ -58,11 +58,23 @@ impl ExactFace {
     }
 }
 
+impl Default for ExactFace {
+    fn default() -> Self {
+        Self::Hexagon([PackedIndex::default(); 6])
+    }
+}
+
 /// Represents a face of a Goldberg polyhedron as a list of (indices to) vertices in counterclockwise winding order.
 #[derive(Copy, Clone, Debug)]
 pub enum MeshFace {
     Pentagon([u32; 5]),
     Hexagon([u32; 6])
+}
+
+impl Default for MeshFace {
+    fn default() -> Self {
+        Self::Hexagon([0; 6])
+    }
 }
 
 /// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
@@ -96,8 +108,11 @@ impl<const N: u32> ExactGlobe<N> {
         let subdivision = SubdividedTriangle::<N>::new();
         let seed = Seed::<N>::icosahedron();
         
-        let faces = Self::faces_from_template(&subdivision)
-            .collect::<Vec<_>>();
+        let mut faces = vec![ExactFace::default(); Self::FACES];
+        
+        Self::faces_from_template(&subdivision)
+            .enumerate()
+            .for_each(|(i, face)| faces[i] = face);
         
         Self {
             seed,
@@ -387,59 +402,89 @@ impl<const N: u32> ExactGlobe<N> {
     /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron where `centroids` is a reference to the
     /// output of the [centroids] method.
     pub fn mesh_vertices(&self, centroids: &Vec<Vec<Vec3>>) -> Vec<[f32; 3]> {
-        self.faces.iter()
-            .flat_map(|f|
-                match f {
-                    ExactFace::Pentagon(v) => &v[..],
-                    ExactFace::Hexagon(v) => &v[..]
-                }.iter()
-                    .map(|i| centroids[i.face()][i.subdivision()].to_array())
-            )
-            .collect()
+        let mut vertices = vec![[0.0; 3]; Self::MESH_VERTICES];
+        let mut n = 0;
+        
+        for face in &self.faces {
+            match face {
+                ExactFace::Pentagon(v) => {
+                    vertices[n..(n + 5)].copy_from_slice(
+                        &v[0..5].iter()
+                            .map(|i| centroids[i.face()][i.subdivision()].to_array())
+                            .collect_array::<5>()
+                            .unwrap()[0..5]
+                    );
+                    n += 5;
+                }
+                ExactFace::Hexagon(v) => {
+                    vertices[n..(n + 6)].copy_from_slice(
+                        &v[0..6].iter()
+                            .map(|i| centroids[i.face()][i.subdivision()].to_array())
+                            .collect_array::<6>()
+                            .unwrap()[0..6]
+                    );
+                    n += 6;
+                }
+            }
+        }
+        
+        vertices
     }
     
     /// Returns a list of the faces of the given Goldberg polyhedron used as a preliminary step in [mesh_triangles] but
     /// can also be used independently.
     pub fn mesh_faces(&self) -> Vec<MeshFace> {
-        let mut n = 0;
+        let mut output = vec![MeshFace::default(); Self::FACES];
         
-        self.faces.iter()
-            .map(|face| match face {
-                ExactFace::Pentagon(_) => {
-                    n += 5;
-                    (n - 5, face)
-                },
-                ExactFace::Hexagon(_) => {
-                    n += 6;
-                    (n - 6, face)
-                }
-            })
-            .map(|(i, face)| match face {
-                ExactFace::Pentagon(_) => MeshFace::Pentagon([i, i + 1, i + 2, i + 3, i + 4]),
-                ExactFace::Hexagon(_) => MeshFace::Hexagon([i, i + 1, i + 2, i + 3, i + 4, i + 5])
-            })
-            .collect()
+        let pentagons = &mut output[0..Self::PENTAGONS];
+        
+        for i in 0..Self::PENTAGONS {
+            let n = (i * 5) as u32;
+            pentagons[i] = MeshFace::Pentagon([n, n + 1, n + 2, n + 3, n + 4]);
+        }
+        
+        let hexagons = &mut output[Self::PENTAGONS..Self::FACES];
+        let k = (Self::PENTAGONS * 5) as u32;
+        
+        for i in 0..Self::HEXAGONS {
+            let n = k + (i * 6) as u32;
+            hexagons[i] = MeshFace::Hexagon([n, n + 1, n + 2, n + 3, n + 4, n + 5]);
+        }
+        
+        output
     }
     
     /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
     /// indices are deterministic so this is a cheap function and can be called independently of vertex computation. The
     /// `faces` parameter should be a reference to the output of [mesh_faces].
     pub fn mesh_triangles(&self, faces: &Vec<MeshFace>) -> Vec<u32> {
-        faces.into_iter()
-            .flat_map(|face| match face {
-                MeshFace::Pentagon(v) => vec![
-                    v[0], v[1], v[2],
-                    v[0], v[2], v[3],
-                    v[0], v[3], v[4]
-                ],
-                MeshFace::Hexagon(v) => vec![
-                    v[0], v[1], v[2],
-                    v[0], v[2], v[3],
-                    v[0], v[3], v[4],
-                    v[0], v[4], v[5]
-                ]
-            })
-            .collect()
+        let mut output = vec![0; Self::MESH_TRIANGLES * 3];
+        
+        let mut n = 0;
+        
+        for face in faces {
+            match face {
+                MeshFace::Pentagon(v) => {
+                    output[n..(n + 9)].copy_from_slice(&[
+                        v[0], v[1], v[2],
+                        v[0], v[2], v[3],
+                        v[0], v[3], v[4]
+                    ]);
+                    n += 9;
+                }
+                MeshFace::Hexagon(v) => {
+                    output[n..(n + 12)].copy_from_slice(&[
+                        v[0], v[1], v[2],
+                        v[0], v[2], v[3],
+                        v[0], v[3], v[4],
+                        v[0], v[4], v[5]
+                    ]);
+                    n += 12;
+                }
+            }
+        }
+        
+        output
     }
     
     /// Computes the normals for the mesh of this polyhedron. This method is much faster than an external implementation
