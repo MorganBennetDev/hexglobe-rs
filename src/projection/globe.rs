@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashMap;
 use glam::Vec3;
 use itertools::Itertools;
 use crate::interpolation::slerp::slerp_3;
@@ -317,36 +316,34 @@ impl<const N: u32> ExactGlobe<N> {
     /// operation as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries
     /// between faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to
     /// only compute one and may be implemented in the future.
-    pub fn vertices_f32(&self, r: Option<f32>) -> HashMap<PackedIndex, Vec3> {
+    pub fn vertices_f32(&self, r: Option<f32>) -> Vec<Vec<Vec3>> {
         let radius = r.unwrap_or(1.0);
         
-        let base = self.subdivision.triangles()
-            .map(|t| (t.u + t.v + t.w).as_vec3() / (3 * N) as f32)
-            .enumerate()
-            .cartesian_product(self.seed.base_faces())
-            .map(|((i, centroid), (f, face))| (
-                PackedIndex::new(f, i),
-                slerp_3(
+        let n = SubdividedTriangle::<N>::TRIANGLES;
+        
+        let face_vertices = vec![Vec3::ZERO; n];
+        let mut vertices = vec![face_vertices.clone(); 20];
+        let triangles = self.subdivision.triangles();
+        
+        for (f, face) in self.seed.base_faces() {
+            for (i, t) in self.subdivision.triangles().enumerate() {
+                let centroid = (t.u + t.v + t.w).as_vec3() / (3 * N) as f32;
+                
+                vertices[f][i] = slerp_3(
                     centroid.x, face.u,
                     centroid.y, face.v,
                     centroid.z, face.w
-                ) * radius
-            ))
-            .collect::<Vec<_>>();
-            
-        base.iter()
-            .cloned()
-            .chain(
-                // Vertices which are obtained via transformations of the others.
-                base.iter()
-                    .cartesian_product(self.seed.symmetries())
-                    .filter(|((i, _), (_, b, _))| i.face() == *b)
-                    .map(|((i, v), (f, _, t))| (
-                        PackedIndex::new(f, i.subdivision()),
-                        t.mul_vec3(*v)
-                    ))
-            )
-            .collect::<HashMap<_, _>>()
+                ) * radius;
+            }
+        }
+        
+        for (f, base, s) in self.seed.symmetries() {
+            for i in 0..n {
+                vertices[f][i] = s.mul_vec3(vertices[base][i]);
+            }
+        }
+        
+        vertices
     }
     
     /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0) using
@@ -360,7 +357,7 @@ impl<const N: u32> ExactGlobe<N> {
                     ExactFace::Pentagon(v) => &v[..],
                     ExactFace::Hexagon(v) => &v[..]
                 }.iter()
-                    .map(|i| vertices.get(&i).unwrap().to_array())
+                    .map(|i| vertices[i.face()][i.subdivision()].to_array())
             )
             .collect()
     }

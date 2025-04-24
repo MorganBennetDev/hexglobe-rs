@@ -100,8 +100,8 @@ fn subdivision() {
     check!(test.vertices.iter().len() == 10, "Incorrect number of vertices in subdivision.");
     check!(test.triangles.len() == 9, "Incorrect number of triangles in subdivision.");
     
-    check!(test.vertices.iter().len() == SubdividedTriangle::<3>::N_VERTICES, "Constant N_VERTICES is incorrect.");
-    check!(test.triangles.len() == SubdividedTriangle::<3>::N_TRIANGLES, "Constant N_TRIANGLES is incorrect.");
+    check!(test.vertices.iter().len() == SubdividedTriangle::<3>::VERTICES, "Constant N_VERTICES is incorrect.");
+    check!(test.triangles.len() == SubdividedTriangle::<3>::TRIANGLES, "Constant N_TRIANGLES is incorrect.");
 }
 
 #[test]

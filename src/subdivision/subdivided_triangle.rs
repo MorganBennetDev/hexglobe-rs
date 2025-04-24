@@ -49,10 +49,10 @@ pub struct SubdividedTriangle<const N: u32> {
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
-    pub const N_TRIANGLES: usize = n_triangles(N);
-    pub const N_VERTICES: usize = n_vertices(N);
-    const N_TRIANGLES_UP: usize = n_triangles_up(N);
-    const N_TRIANGLES_DOWN: usize = n_triangles_down(N);
+    pub const TRIANGLES: usize = n_triangles(N);
+    pub const VERTICES: usize = n_vertices(N);
+    const TRIANGLES_UP: usize = n_triangles_up(N);
+    const TRIANGLES_DOWN: usize = n_triangles_down(N);
     
     pub fn new() -> Self {
         assert_ne!(N, 0, "Number of subdivisions must be nonzero.");
@@ -99,7 +99,7 @@ impl<const N: u32> SubdividedTriangle<N> {
             0..0
         } else {
             let k = N as usize - i;
-            let start = Self::N_TRIANGLES_UP - k * (k + 1) / 2;
+            let start = Self::TRIANGLES_UP - k * (k + 1) / 2;
             let end = start + k;
             start..end
         }
@@ -110,7 +110,7 @@ impl<const N: u32> SubdividedTriangle<N> {
             0..0
         } else {
             let k = N as usize - 1 - i;
-            let start = Self::N_TRIANGLES_UP + Self::N_TRIANGLES_DOWN - k * (k + 1) / 2;
+            let start = Self::TRIANGLES_UP + Self::TRIANGLES_DOWN - k * (k + 1) / 2;
             let end = start + k;
             start..end
         }
@@ -140,7 +140,7 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     /// Index of the `u` vertex of this triangle (`(1,0,0)` in barycentric coordinates).
     pub const fn u(&self) -> usize {
-        Self::N_TRIANGLES_UP - 1
+        Self::TRIANGLES_UP - 1
     }
     
     /// Index of the `v` vertex of this triangle (`(0,1,0)` in barycentric coordinates).
@@ -157,10 +157,10 @@ impl<const N: u32> SubdividedTriangle<N> {
     /// coordinates) of the parent triangle sorted by descending centroid `x` coordinate.
     pub fn uv(&self) -> Vec<usize> {
         (0..N as usize).into_iter()
-            .map(|i| Self::N_TRIANGLES_UP - i * (i + 1) / 2 - 1)
+            .map(|i| Self::TRIANGLES_UP - i * (i + 1) / 2 - 1)
             .interleave(
                 (0..(N as usize - 1)).into_iter()
-                    .map(|i| Self::N_TRIANGLES - i * (i + 1) / 2 - 1)
+                    .map(|i| Self::TRIANGLES - i * (i + 1) / 2 - 1)
             )
             .collect::<Vec<_>>()
     }
@@ -171,7 +171,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         (0..N as usize)
             .rev()
             .interleave(
-                (Self::N_TRIANGLES_UP..(Self::N_TRIANGLES_UP + N as usize - 1)).rev()
+                (Self::TRIANGLES_UP..(Self::TRIANGLES_UP + N as usize - 1)).rev()
             )
             .collect::<Vec<_>>()
     }
@@ -183,11 +183,11 @@ impl<const N: u32> SubdividedTriangle<N> {
             .map(|i| (i + 1) * (i + 2) / 2);
         
         k.clone()
-            .map(|k_i| Self::N_TRIANGLES_UP - k_i)
+            .map(|k_i| Self::TRIANGLES_UP - k_i)
             .interleave(
                 k.clone()
                     .skip(1)
-                    .map(|k_i| Self::N_TRIANGLES - k_i)
+                    .map(|k_i| Self::TRIANGLES - k_i)
             )
             .collect::<Vec<_>>()
     }
@@ -197,7 +197,7 @@ impl<const N: u32> SubdividedTriangle<N> {
         (0..N as usize)
             .flat_map(|x| {
                 let l = N as usize + 1 - x;
-                let start = Self::N_VERTICES - l * (l + 1) / 2;
+                let start = Self::VERTICES - l * (l + 1) / 2;
                 let end = start + l;
                 
                 (start..end)
