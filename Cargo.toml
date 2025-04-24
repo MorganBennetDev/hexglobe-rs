@@ -11,7 +11,7 @@ categories = ["game-development", "mathematics"]
 
 [dependencies]
 itertools = "0.14.0"
-glam = "0.30.1"
+glam = "0.30.2"
 
 [dev-dependencies]
 divan = "0.1.17"
