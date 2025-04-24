@@ -17,6 +17,7 @@ glam = "0.30.2"
 divan = "0.1.17"
 ntest = "0.9.3"
 assert2 = "0.3.15"
+bevy_panorbit_camera = "0.25.0"
 
 [dev-dependencies.bevy]
 version = "0.15.3"
