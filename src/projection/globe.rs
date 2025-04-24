@@ -350,11 +350,12 @@ impl<const N: u32> ExactGlobe<N> {
         self.faces.len()
     }
     
-    /// Generates vertices of a Goldberg polyhedron with an optional radius (default of 1.0). This is the most expensive
-    /// operation as it utilizes the `slerp_3` function. Optimizations have been made to exploit some of the symmetries
-    /// between faces and only compute vertices for 5 of the 20 subdivided faces. Further optimizations can be made to
-    /// only compute one and may be implemented in the future.
-    pub fn vertices_f32(&self, r: Option<f32>) -> Vec<Vec<Vec3>> {
+    /// Generates vertices of a Goldberg polyhedron with an optional radius (default of 1.0), which are the centroids of
+    /// the subdivided triangular faces. This is the most expensive operation as it utilizes the `slerp_3` function.
+    /// Optimizations have been made to exploit some of the symmetries between faces and only compute vertices for 5 of
+    /// the 20 subdivided faces. Further optimizations can be made to  only compute one and may be implemented in the
+    /// future.
+    pub fn centroids(&self, r: Option<f32>) -> Vec<Vec<Vec3>> {
         let radius = r.unwrap_or(1.0);
         
         let n = SubdividedTriangle::<N>::TRIANGLES;
@@ -383,18 +384,16 @@ impl<const N: u32> ExactGlobe<N> {
         vertices
     }
     
-    /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0) using
-    /// [vertices_f32].
-    pub fn mesh_vertices(&self, r: Option<f32>) -> Vec<[f32; 3]> {
-        let vertices = self.vertices_f32(r);
-        
+    /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron where `centroids` is a reference to the
+    /// output of the [centroids] method.
+    pub fn mesh_vertices(&self, centroids: &Vec<Vec<Vec3>>) -> Vec<[f32; 3]> {
         self.faces.iter()
             .flat_map(|f|
                 match f {
                     ExactFace::Pentagon(v) => &v[..],
                     ExactFace::Hexagon(v) => &v[..]
                 }.iter()
-                    .map(|i| vertices[i.face()][i.subdivision()].to_array())
+                    .map(|i| centroids[i.face()][i.subdivision()].to_array())
             )
             .collect()
     }

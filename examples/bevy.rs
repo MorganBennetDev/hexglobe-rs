@@ -60,7 +60,8 @@ fn draw_debug(
 
 fn create_mesh() -> Mesh {
     let globe = ExactGlobe::<3>::new();
-    let vertices = globe.mesh_vertices(None);
+    let centroids = globe.centroids(None);
+    let vertices = globe.mesh_vertices(&centroids);
     let faces = globe.mesh_faces();
     let triangles = globe.mesh_triangles(&faces);
     let normals = globe.mesh_normals(&vertices);

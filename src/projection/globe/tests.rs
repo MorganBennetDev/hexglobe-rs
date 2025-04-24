@@ -61,7 +61,7 @@ fn basic_count_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
     let n_vertices_expected = F * (N * N) as usize;
     let n_faces = V + E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
-    let n_vertices = globe.vertices_f32(None).iter().flatten().count();
+    let n_vertices = globe.centroids(None).iter().flatten().count();
     
     check!(n_vertices == n_vertices_expected, "Incorrect number of vertices in icosahedron with {:?} subdivisions.", N);
     check!(globe.faces.len() == n_faces, "Incorrect number of faces in icosahedron with {:?} subdivisions.", N);
@@ -165,7 +165,8 @@ fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
 
 fn normal_test<const N: u32>() {
     let globe = ExactGlobe::<N>::new();
-    let vertices = globe.mesh_vertices(None);
+    let centroids = globe.centroids(None);
+    let vertices = globe.mesh_vertices(&centroids);
     let faces = globe.mesh_faces();
     let normals = globe.mesh_normals(&vertices);
     let triangles = globe.mesh_triangles(&faces);
