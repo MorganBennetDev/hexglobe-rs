@@ -349,15 +349,20 @@ impl<const N: u32> ExactGlobe<N> {
     /// contain duplicate edges but no other guarantees are made. Edges may appear in any order in the list and edge
     /// endpoints may appear in any order in the corresponding tuple.
     pub fn adjacency(&self) -> Vec<(usize, usize)> {
-        let vertex_adjacency = self.subdivision.vertex_adjacency().collect::<Vec<_>>();
+        let mut adjacency = vec![(0, 0); SubdividedTriangle::<N>::EDGES * 20];
         
-        (0..20)
-            .cartesian_product(vertex_adjacency.iter())
-            .map(|(f, (a, b))| (
-                self.vertex_index_to_face_index(f, *a),
-                self.vertex_index_to_face_index(f, *b)
-            ))
-            .collect::<Vec<_>>()
+        for (i, (a, b)) in self.subdivision.vertex_adjacency().enumerate() {
+            let n = i * 20;
+            
+            for f in 0..20 {
+                adjacency[n + f] = (
+                    self.vertex_index_to_face_index(f, a),
+                    self.vertex_index_to_face_index(f, b)
+                );
+            }
+        }
+        
+        adjacency
     }
     
     /// Returns the number of faces in the specified polyhedron.
