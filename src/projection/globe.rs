@@ -525,7 +525,7 @@ impl<const N: u32> ExactGlobe<N> {
                 Vec3::from(hexagon[4])
             ];
             
-            let normal = (v - u).cross(w - u).normalize().to_array();
+            let normal = (v + u + w).normalize().to_array();
             
             for k in 0..6 {
                 normals[i + k] = normal;
