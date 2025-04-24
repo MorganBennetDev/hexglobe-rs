@@ -2,6 +2,10 @@ use std::collections::hash_set::Difference;
 use std::collections::HashSet;
 use std::hash::RandomState;
 use assert2::check;
+use bevy::asset::RenderAssetUsages;
+use bevy::prelude::Mesh;
+use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
+use glam::Vec3;
 use itertools::Itertools;
 use crate::projection::globe::{ExactFace, ExactGlobe};
 use crate::subdivision::subdivided_triangle::SubdividedTriangle;
@@ -144,7 +148,7 @@ fn adjacency_test<const N: u32>() {
         difference_to_vec(&computed_adjacency.difference(&expected_adjacency)), difference_to_vec(&expected_adjacency.difference(&computed_adjacency)));
 }
 
-fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize, expected: usize) {
+fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
     let globe = ExactGlobe::<N>::new();
     
     let actual = globe.vertex_index_to_face_index(f, i);
@@ -157,6 +161,39 @@ fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize, expected: u
         .position(|t| t.u == i || t.v == i || t.w == i);
     
     check!(matches.is_some(), "Did not get expected face index for globe with {:?} subdivisions.", N);
+}
+
+fn normal_test<const N: u32>() {
+    let globe = ExactGlobe::<N>::new();
+    let vertices = globe.mesh_vertices(None);
+    let faces = globe.mesh_faces();
+    let normals = globe.mesh_normals(&vertices);
+    let triangles = globe.mesh_triangles(&faces);
+    
+    triangles.iter()
+        .chunks(3)
+        .into_iter()
+        .map(|i| i.map(|j| (*j as usize, Vec3::from_array(vertices[*j as usize]))).collect_vec())
+        .for_each(|t| {
+            let ((i, u), (j, v), (k, w)) = (t[0], t[1], t[2]);
+            
+            let uv = v - u;
+            let vw = w - v;
+            let wu = u - w;
+            
+            let n_u = Vec3::from_array(normals[i]);
+            let n_v = Vec3::from_array(normals[j]);
+            let n_w = Vec3::from_array(normals[k]);
+            // Allow a maximum error of +/-0.573 degrees in angle between normal and face.
+            let e = 0.01;
+            
+            check!(n_u.dot(uv) <= e, "Found invalid normal for u, uv in globe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_u.dot(-wu) <= e, "Found invalid normal for u, wu in globe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_v.dot(-uv) <= e, "Found invalid normal for v, uv in globe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_v.dot(vw) <= e, "Found invalid normal for v, vw in globe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_w.dot(-vw) <= e, "Found invalid normal for w, vw in globe with {:?} subdivisions (index {:?}).", N, k);
+            check!(n_w.dot(wu) <= e, "Found invalid normal for w, wu in globe with {:?} subdivisions (index {:?}).", N, k);
+        });
 }
 
 #[test]
@@ -230,12 +267,25 @@ fn adjacency() {
 #[test]
 fn vertex_to_face_index() {
     // Edge
-    vertex_index_to_face_index_test::<2>(1, 2, 2);
+    vertex_index_to_face_index_test::<2>(1, 2);
     // Interior
-    vertex_index_to_face_index_test::<3>(11, 5, V + E * 2 + 11);
+    vertex_index_to_face_index_test::<3>(11, 5);
     
-    vertex_index_to_face_index_test::<4>(0, 6, V + E * 3);
-    vertex_index_to_face_index_test::<4>(1, 7, V + E * 3 + 3 + 1);
-    vertex_index_to_face_index_test::<4>(2, 10, V + E * 3 + 6 + 2);
-    vertex_index_to_face_index_test::<4>(1, 1, V + 18 + 0)
+    vertex_index_to_face_index_test::<4>(0, 6);
+    vertex_index_to_face_index_test::<4>(1, 7);
+    vertex_index_to_face_index_test::<4>(2, 10);
+    vertex_index_to_face_index_test::<4>(1, 1)
+}
+
+#[test]
+fn normal() {
+    normal_test::<1>();
+    
+    normal_test::<2>();
+    
+    normal_test::<3>();
+    
+    normal_test::<4>();
+    
+    normal_test::<5>();
 }

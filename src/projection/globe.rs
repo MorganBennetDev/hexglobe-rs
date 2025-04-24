@@ -39,11 +39,22 @@ pub struct ExactGlobe<const N: u32> {
 }
 
 impl<const N: u32> ExactGlobe<N> {
-    const SEED_N_VERTICES: usize = 12;
-    const SEED_N_EDGES: usize = 30;
-    const N_FACES_PER_VERTEX: usize = 1;
-    const N_FACES_PER_EDGE: usize = N as usize - 1;
-    const N_FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
+    const SEED_VERTICES: usize = 12;
+    const SEED_EDGES: usize = 30;
+    const SEED_FACES: usize = 20;
+    const FACES_PER_VERTEX: usize = 1;
+    const FACES_PER_EDGE: usize = N as usize - 1;
+    const FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
+    const PENTAGONS: usize = Self::SEED_VERTICES;
+    const HEXAGONS: usize = Self::SEED_EDGES * Self::FACES_PER_EDGE + Self::SEED_FACES * Self::FACES_PER_FACE;
+    const FACES: usize = Self::PENTAGONS + Self::HEXAGONS;
+    const MESH_PENTAGON_VERTICES: usize = Self::PENTAGONS * 5;
+    const MESH_HEXAGON_VERTICES: usize = Self::HEXAGONS * 6;
+    const MESH_VERTICES: usize = Self::MESH_PENTAGON_VERTICES + Self::MESH_HEXAGON_VERTICES;
+    const MESH_PENTAGON_TRIANGLES: usize = 3;
+    const MESH_HEXAGON_TRIANGLES: usize = 4;
+    const MESH_TRIANGLES: usize = Self::PENTAGONS * Self::MESH_PENTAGON_TRIANGLES + Self::HEXAGONS * Self::MESH_HEXAGON_TRIANGLES;
+    
     /// Initializes the data for a new polyhedron. This is very cheap as all the expensive computations are done during
     /// conversion to floating point coordinates.
     pub fn new() -> Self {
@@ -241,38 +252,38 @@ impl<const N: u32> ExactGlobe<N> {
             },
             // Edges
             (_, _, 0) | (0, _, _) | (_, 0, _) => {
-                let offset = Self::SEED_N_VERTICES * Self::N_FACES_PER_VERTEX - 1;
+                let offset = Self::SEED_VERTICES * Self::FACES_PER_VERTEX - 1;
                 
                 match (v.x, v.y, v.z) {
                     (_, _, 0) => match f { // uv
-                        0..5 => offset + ((f + 4) % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
-                        5..10 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
-                        10..15 => offset + (10 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
+                        0..5 => offset + ((f + 4) % 5) * Self::FACES_PER_EDGE + v.x as usize,
+                        5..10 => offset + (10 + f % 5) * Self::FACES_PER_EDGE + v.y as usize,
+                        10..15 => offset + (10 + f % 5) * Self::FACES_PER_EDGE + v.x as usize,
                         // 15..20
-                        _ => offset + (25 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        _ => offset + (25 + f % 5) * Self::FACES_PER_EDGE + v.y as usize,
                     },
                     (0, _, _) => match f { // vw
-                        0..5 => offset + (5 + f) * Self::N_FACES_PER_EDGE + v.z as usize,
-                        5..10 => offset + (5 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
-                        10..15 => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        0..5 => offset + (5 + f) * Self::FACES_PER_EDGE + v.z as usize,
+                        5..10 => offset + (5 + f % 5) * Self::FACES_PER_EDGE + v.y as usize,
+                        10..15 => offset + (20 + f % 5) * Self::FACES_PER_EDGE + v.z as usize,
                         // 15..20
-                        _ => offset + (20 + f % 5) * Self::N_FACES_PER_EDGE + v.y as usize,
+                        _ => offset + (20 + f % 5) * Self::FACES_PER_EDGE + v.y as usize,
                     },
                     // This is just (_, 0, _), but the interpreter doesn't know that other cases aren't possible.
                     _ => match f { // wu
-                        0..5 => offset + f * Self::N_FACES_PER_EDGE + v.x as usize,
-                        5..10 => offset + (15 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
-                        10..15 => offset + (15 + f % 5) * Self::N_FACES_PER_EDGE + v.x as usize,
+                        0..5 => offset + f * Self::FACES_PER_EDGE + v.x as usize,
+                        5..10 => offset + (15 + (f + 4) % 5) * Self::FACES_PER_EDGE + v.z as usize,
+                        10..15 => offset + (15 + f % 5) * Self::FACES_PER_EDGE + v.x as usize,
                         // 15..20
-                        _ => offset + (25 + (f + 4) % 5) * Self::N_FACES_PER_EDGE + v.z as usize,
+                        _ => offset + (25 + (f + 4) % 5) * Self::FACES_PER_EDGE + v.z as usize,
                     }
                 }
             },
             // Faces
             _ => {
-                let offset = Self::SEED_N_VERTICES * Self::N_FACES_PER_VERTEX +
-                    Self::SEED_N_EDGES * Self::N_FACES_PER_EDGE +
-                    f * Self::N_FACES_PER_FACE;
+                let offset = Self::SEED_VERTICES * Self::FACES_PER_VERTEX +
+                    Self::SEED_EDGES * Self::FACES_PER_EDGE +
+                    f * Self::FACES_PER_FACE;
                 
                 // Index of vertex i in the set of vertices excluding edges.
                 let j = self.subdivision.vertex_interior_index_unchecked(v);
@@ -378,9 +389,10 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
-    /// indices are deterministic so this is a cheap function and can be called independently of vertex computation.
-    pub fn mesh_triangles(&self) -> Vec<u32> {
-        self.mesh_faces().into_iter()
+    /// indices are deterministic so this is a cheap function and can be called independently of vertex computation. The
+    /// `faces` parameter should be a reference to the output of [mesh_faces].
+    pub fn mesh_triangles(&self, faces: &Vec<MeshFace>) -> Vec<u32> {
+        faces.into_iter()
             .flat_map(|face| match face {
                 MeshFace::Pentagon(v) => vec![
                     v[0], v[1], v[2],
@@ -395,5 +407,48 @@ impl<const N: u32> ExactGlobe<N> {
                 ]
             })
             .collect()
+    }
+    
+    /// Computes the normals for the mesh of this polyhedron. This method is much faster than an external implementation
+    /// because it can make assumptions about the input data. The `vertices` parameter should be a reference to the
+    /// output of [mesh_vertices].
+    pub fn mesh_normals(&self, vertices: &Vec<[f32; 3]>) -> Vec<[f32; 3]> {
+        assert_eq!(vertices.len(), Self::MESH_VERTICES, "Incorrect number of vertices passed to mesh_normals.");
+        
+        let mut normals = vec![[0.0; 3]; Self::MESH_VERTICES];
+        
+        for i in (0..Self::MESH_PENTAGON_VERTICES).step_by(5) {
+            let pentagon = &vertices[i..(i + 5)];
+            
+            let [u, v, w] = [
+                Vec3::from(pentagon[0]),
+                Vec3::from(pentagon[2]),
+                Vec3::from(pentagon[3])
+            ];
+            
+            let normal = (v - u).cross(w - u).normalize().to_array();
+            
+            for k in 0..5 {
+                normals[i + k] = normal;
+            }
+        }
+        
+        for i in (Self::MESH_PENTAGON_VERTICES..Self::MESH_VERTICES).step_by(6) {
+            let hexagon = &vertices[i..(i + 6)];
+            
+            let [u, v, w] = [
+                Vec3::from(hexagon[0]),
+                Vec3::from(hexagon[2]),
+                Vec3::from(hexagon[4])
+            ];
+            
+            let normal = (v - u).cross(w - u).normalize().to_array();
+            
+            for k in 0..6 {
+                normals[i + k] = normal;
+            }
+        }
+        
+        normals
     }
 }

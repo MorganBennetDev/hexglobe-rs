@@ -60,14 +60,21 @@ fn draw_debug(
 
 fn create_mesh() -> Mesh {
     let globe = ExactGlobe::<3>::new();
+    let vertices = globe.mesh_vertices(None);
+    let faces = globe.mesh_faces();
+    let triangles = globe.mesh_triangles(&faces);
+    let normals = globe.mesh_normals(&vertices);
     
     Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD)
         .with_inserted_attribute(
             Mesh::ATTRIBUTE_POSITION,
-            globe.mesh_vertices(None)
+            vertices
         )
         .with_inserted_indices(Indices::U32(
-            globe.mesh_triangles()
+            triangles
         ))
-        .with_computed_normals()
+        .with_inserted_attribute(
+            Mesh::ATTRIBUTE_NORMAL,
+            normals
+        )
 }

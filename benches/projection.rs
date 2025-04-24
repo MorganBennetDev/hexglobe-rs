@@ -1,3 +1,5 @@
+use std::hint::black_box;
+use divan::Bencher;
 use hexglobe::projection::globe::ExactGlobe;
 
 fn main() {
@@ -10,5 +12,15 @@ fn projection<const N: u32>() {
     let g = ExactGlobe::<N>::new();
     
     g.mesh_vertices(None);
-    g.mesh_triangles();
+    g.mesh_triangles(&g.mesh_faces());
+}
+
+#[divan::bench(consts = [1, 2, 4, 8, 16, 32, 64])]
+fn normal<const N: u32>(bencher: Bencher) {
+    let g = ExactGlobe::<N>::new();
+    let vertices = g.mesh_vertices(None);
+    
+    bencher.bench_local(move || {
+        black_box(g.mesh_normals(&vertices));
+    });
 }
