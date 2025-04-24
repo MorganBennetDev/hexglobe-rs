@@ -22,6 +22,42 @@ enum ExactFace {
     Hexagon([PackedIndex; 6])
 }
 
+impl ExactFace {
+    const fn construct_hexagon(
+        (f0, s0): (usize, usize),
+        (f1, s1): (usize, usize),
+        (f2, s2): (usize, usize),
+        (f3, s3): (usize, usize),
+        (f4, s4): (usize, usize),
+        (f5, s5): (usize, usize)
+    ) -> Self {
+        Self::Hexagon([
+            PackedIndex::new(f0, s0),
+            PackedIndex::new(f1, s1),
+            PackedIndex::new(f2, s2),
+            PackedIndex::new(f3, s3),
+            PackedIndex::new(f4, s4),
+            PackedIndex::new(f5, s5)
+        ])
+    }
+    
+    const fn construct_pentagon(
+        (f0, s0): (usize, usize),
+        (f1, s1): (usize, usize),
+        (f2, s2): (usize, usize),
+        (f3, s3): (usize, usize),
+        (f4, s4): (usize, usize)
+    ) -> Self {
+        Self::Pentagon([
+            PackedIndex::new(f0, s0),
+            PackedIndex::new(f1, s1),
+            PackedIndex::new(f2, s2),
+            PackedIndex::new(f3, s3),
+            PackedIndex::new(f4, s4)
+        ])
+    }
+}
+
 /// Represents a face of a Goldberg polyhedron as a list of (indices to) vertices in counterclockwise winding order.
 #[derive(Copy, Clone, Debug)]
 pub enum MeshFace {
@@ -46,13 +82,13 @@ impl<const N: u32> ExactGlobe<N> {
     const FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
     const PENTAGONS: usize = Self::SEED_VERTICES;
     const HEXAGONS: usize = Self::SEED_EDGES * Self::FACES_PER_EDGE + Self::SEED_FACES * Self::FACES_PER_FACE;
-    const FACES: usize = Self::PENTAGONS + Self::HEXAGONS;
+    pub const FACES: usize = Self::PENTAGONS + Self::HEXAGONS;
     const MESH_PENTAGON_VERTICES: usize = Self::PENTAGONS * 5;
     const MESH_HEXAGON_VERTICES: usize = Self::HEXAGONS * 6;
     const MESH_VERTICES: usize = Self::MESH_PENTAGON_VERTICES + Self::MESH_HEXAGON_VERTICES;
     const MESH_PENTAGON_TRIANGLES: usize = 3;
     const MESH_HEXAGON_TRIANGLES: usize = 4;
-    const MESH_TRIANGLES: usize = Self::PENTAGONS * Self::MESH_PENTAGON_TRIANGLES + Self::HEXAGONS * Self::MESH_HEXAGON_TRIANGLES;
+    pub const MESH_TRIANGLES: usize = Self::PENTAGONS * Self::MESH_PENTAGON_TRIANGLES + Self::HEXAGONS * Self::MESH_HEXAGON_TRIANGLES;
     
     /// Initializes the data for a new polyhedron. This is very cheap as all the expensive computations are done during
     /// conversion to floating point coordinates.
@@ -144,51 +180,53 @@ impl<const N: u32> ExactGlobe<N> {
             .chain(lm_um)
             .chain(lm_b)
             .chain(b_b)
-            .map(|((face_a, face_b), ((a0, b0), (a1, b1), (a2, b2)))| ExactFace::Hexagon([
-                PackedIndex::new(face_a, a0),
-                PackedIndex::new(face_a, a1),
-                PackedIndex::new(face_a, a2),
-                PackedIndex::new(face_b, b2),
-                PackedIndex::new(face_b, b1),
-                PackedIndex::new(face_b, b0),
-            ]))
+            .map(|((face_a, face_b), ((a0, b0), (a1, b1), (a2, b2)))|
+                ExactFace::construct_hexagon(
+                (face_a, a0),
+                (face_a, a1),
+                (face_a, a2),
+                (face_b, b2),
+                (face_b, b1),
+                (face_b, b0)
+                )
+            )
     }
     
     fn vertex_faces_from_template(template: &SubdividedTriangle<N>) -> impl Iterator<Item = ExactFace> {
         let tb = [
-            ExactFace::Pentagon([
-                PackedIndex::new(4, template.u()),
-                PackedIndex::new(3, template.u()),
-                PackedIndex::new(2, template.u()),
-                PackedIndex::new(1, template.u()),
-                PackedIndex::new(0, template.u()),
-            ]),
-            ExactFace::Pentagon([
-                PackedIndex::new(15, template.u()),
-                PackedIndex::new(16, template.u()),
-                PackedIndex::new(17, template.u()),
-                PackedIndex::new(18, template.u()),
-                PackedIndex::new(19, template.u()),
-            ])
+            ExactFace::construct_pentagon(
+                (4, template.u()),
+                (3, template.u()),
+                (2, template.u()),
+                (1, template.u()),
+                (0, template.u()),
+            ),
+            ExactFace::construct_pentagon(
+                (15, template.u()),
+                (16, template.u()),
+                (17, template.u()),
+                (18, template.u()),
+                (19, template.u()),
+            )
         ].into_iter();
         
         let um = (5..10)
-            .map(|face| ExactFace::Pentagon([
-                PackedIndex::new(face - 5, template.w()),
-                PackedIndex::new((face + 1) % 5, template.v()),
-                PackedIndex::new(5 + (face + 1) % 5, template.w()),
-                PackedIndex::new(face + 5, template.u()),
-                PackedIndex::new(face, template.v()),
-            ]));
+            .map(|face| ExactFace::construct_pentagon(
+                (face - 5, template.w()),
+                ((face + 1) % 5, template.v()),
+                (5 + (face + 1) % 5, template.w()),
+                (face + 5, template.u()),
+                (face, template.v()),
+            ));
         
         let lm = (10..15)
-            .map(|face| ExactFace::Pentagon([
-                PackedIndex::new(face + 5, template.w()),
-                PackedIndex::new(15 + (face + 4) % 5, template.v()),
-                PackedIndex::new(10 + (face + 4) % 5, template.w()),
-                PackedIndex::new(face - 5, template.u()),
-                PackedIndex::new(face, template.v()),
-            ]));
+            .map(|face| ExactFace::construct_pentagon(
+                (face + 5, template.w()),
+                (15 + (face + 4) % 5, template.v()),
+                (10 + (face + 4) % 5, template.w()),
+                (face - 5, template.u()),
+                (face, template.v()),
+            ));
         
         tb
             .chain(um)
@@ -211,16 +249,16 @@ impl<const N: u32> ExactGlobe<N> {
         // Ensures that faces subdivided from the same seed face are near each other.
         (0..20).into_iter()
             .cartesian_product(face_vertices_iter)
-            .map(|(face, ((a0, b0), (a1, b1), (a2, b2)))| {
-                ExactFace::Hexagon([
-                    PackedIndex::new(face, a0),
-                    PackedIndex::new(face, a1),
-                    PackedIndex::new(face, a2),
-                    PackedIndex::new(face, b2),
-                    PackedIndex::new(face, b1),
-                    PackedIndex::new(face, b0),
-                ])
-            })
+            .map(|(face, ((a0, b0), (a1, b1), (a2, b2)))|
+                ExactFace::construct_hexagon(
+                    (face, a0),
+                    (face, a1),
+                    (face, a2),
+                    (face, b2),
+                    (face, b1),
+                    (face, b0)
+                )
+            )
     }
     
     fn vertex_index_to_face_index(&self, f: usize, i: usize) -> usize {
@@ -323,7 +361,6 @@ impl<const N: u32> ExactGlobe<N> {
         
         let face_vertices = vec![Vec3::ZERO; n];
         let mut vertices = vec![face_vertices.clone(); 20];
-        let triangles = self.subdivision.triangles();
         
         for (f, face) in self.seed.base_faces() {
             for (i, t) in self.subdivision.triangles().enumerate() {
