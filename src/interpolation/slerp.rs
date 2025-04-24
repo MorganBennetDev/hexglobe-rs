@@ -35,7 +35,10 @@ fn sphere_exp(q: &Vec3, dp: &Vec3) -> Vec3 {
 /// local linear convergence algorithm (A1) described by Buss and Fillmore in [Spherical Averages and Applications
 /// to Spherical Splines and Interpolation](https://mathweb.ucsd.edu/~sbuss/ResearchWeb/spheremean/paper.pdf).
 /// I attempted to implement the quadratic convergence algorithm but was not able to do so in a way that led to
-/// empirically better benchmarks. If you can manage this, contributions are always welcome.
+/// empirically better benchmarks. The authors acknowledge in the paper that the quadratic and linear convergence
+/// algorithms will likely have similar runtimes for single precisions floats. However, if you can manage to improve the
+/// performance of this routine, contributions are always welcome (particularly for this method as it is by far the most
+/// expensive operation in the entire process).
 pub fn slerp_n<const N: usize>(w: &[f32; N], p: &[Vec3; N]) -> Vec3 {
     let total_weight = w.iter().cloned().tree_reduce(|a, b| a + b);
     debug_assert!(total_weight.is_some(), "Sum of weights must exist.");
