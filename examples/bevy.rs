@@ -7,7 +7,7 @@ use bevy::{
     },
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use hexglobe::projection::globe::ExactGlobe;
+use hexglobe::globe::ExactGlobe;
 
 fn main() {
     App::new()

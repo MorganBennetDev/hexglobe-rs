@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests;
 
+pub mod triangle;
+
 use std::fmt::Debug;
 use glam::IVec3;
 use itertools::Itertools;
 use crate::denominator::ImplicitDenominator;
-use crate::subdivision::triangle::Triangle;
+use triangle::Triangle;
 
 const fn compute_vertex_index_unchecked(n: u32, v: IVec3) -> usize {
     /*

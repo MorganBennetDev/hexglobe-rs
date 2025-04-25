@@ -1,12 +1,15 @@
 #[cfg(test)]
 mod tests;
 
+pub(crate) mod packed_index;
+mod seed;
+
 use glam::Vec3;
 use itertools::Itertools;
-use crate::interpolation::slerp::slerp_3;
-use crate::projection::packed_index::PackedIndex;
-use crate::projection::seed::Seed;
-use crate::subdivision::subdivided_triangle::SubdividedTriangle;
+use crate::slerp::slerp_3;
+use packed_index::PackedIndex;
+use seed::Seed;
+use crate::subdivided_triangle::SubdividedTriangle;
 
 const fn max(a: u32, b: u32) -> u32 {
     if a > b {

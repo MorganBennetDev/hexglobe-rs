@@ -1,8 +1,8 @@
-use glam::Vec3;
-use itertools::Itertools;
-
 #[cfg(test)]
 mod tests;
+
+use glam::Vec3;
+use itertools::Itertools;
 
 // Map from S^2 to T_q(S^2). Inverse of exp_q(p)
 // Outputs a vector with magnitude equal to the angle between p and q in the direction from q to p tangent to S^2 at q.

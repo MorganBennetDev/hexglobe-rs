@@ -1,6 +1,6 @@
 use std::hint::black_box;
 use divan::Bencher;
-use hexglobe::projection::globe::ExactGlobe;
+use hexglobe::globe::ExactGlobe;
 
 fn main() {
     // Run registered benchmarks.

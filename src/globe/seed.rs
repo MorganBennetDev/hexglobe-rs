@@ -1,5 +1,5 @@
 use glam::{Mat3, Vec3};
-use crate::subdivision::triangle::Triangle;
+use crate::subdivided_triangle::triangle::Triangle;
 
 #[derive(Clone)]
 enum Face {

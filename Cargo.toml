@@ -41,10 +41,6 @@ features = [
 opt-level = 3
 
 [[bench]]
-name = "subdivision"
-harness = false
-
-[[bench]]
 name = "projection"
 harness = false
 

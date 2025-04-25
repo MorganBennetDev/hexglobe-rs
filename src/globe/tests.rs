@@ -4,8 +4,8 @@ use std::hash::RandomState;
 use assert2::check;
 use glam::Vec3;
 use itertools::Itertools;
-use crate::projection::globe::{ExactFace, ExactGlobe};
-use crate::subdivision::subdivided_triangle::SubdividedTriangle;
+use crate::globe::{ExactFace, ExactGlobe};
+use crate::subdivided_triangle::SubdividedTriangle;
 
 // Number of vertices, edges, and faces of icosahedron.
 const V: usize = 12;

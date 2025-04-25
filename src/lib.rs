@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
 mod denominator;
-pub mod interpolation;
-pub mod projection;
-pub mod subdivision;
+mod subdivided_triangle;
+pub mod slerp;
+pub mod globe;

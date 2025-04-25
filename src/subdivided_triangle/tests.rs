@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use assert2::check;
 use glam::IVec3;
 use itertools::Itertools;
-use crate::subdivision::subdivided_triangle::SubdividedTriangle;
-use crate::subdivision::triangle::Triangle;
+use crate::subdivided_triangle::SubdividedTriangle;
+use crate::subdivided_triangle::triangle::Triangle;
 
 fn edge_length_test<const N: u32>() {
     let subdivided = SubdividedTriangle::<N>::new();

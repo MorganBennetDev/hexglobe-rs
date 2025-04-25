@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use assert2::check;
 use ntest::timeout;
 use glam::Vec3;
-use crate::interpolation::slerp::{slerp_n, sphere_exp, sphere_ln};
+use crate::slerp::{slerp_n, sphere_exp, sphere_ln};
 
 #[test]
 fn exp() {
