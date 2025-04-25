@@ -2,5 +2,8 @@
 
 mod denominator;
 mod subdivided_triangle;
-pub mod slerp;
-pub mod globe;
+mod slerp;
+mod hexglobe;
+
+pub use hexglobe::*;
+pub use slerp::*;

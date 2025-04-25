@@ -1,3 +1,5 @@
+#![doc = include_str!("hexglobe/DOCS.md")]
+
 #[cfg(test)]
 mod tests;
 
@@ -82,25 +84,70 @@ impl Default for MeshFace {
 
 /// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
 /// times.
-pub struct ExactGlobe<const N: u32> {
+/// 
+/// # Creating a Mesh
+/// 
+/// The process of creating a mesh is designed to expose as much data as necessary and reasonable to the consumer,
+/// allowing them to perform each step if and when they need to and avoiding the need to write caching logic for complex
+/// backend calculations. This leads to a slightly verbose interface, but the tradeoffs should be worth the flexibility.
+/// 
+/// ```
+/// use hexglobe::HexGlobe;
+///
+/// let globe = HexGlobe::<4>::new();
+///
+/// let centroids = globe.centroids(None);
+/// let vertices = globe.mesh_vertices(&centroids);
+/// let faces = globe.mesh_faces();
+/// let triangles = globe.mesh_triangles(&faces);
+/// let normals = globe.mesh_normals(&vertices);
+///
+/// // ... Pass vertices, triangles, and normals to your rendering library of choice.
+/// ```
+/// 
+/// # Creating an Adjacency Graph
+/// 
+/// The [adjacency](#method.adjacency) method returns a list of tuples representing undirected edges between faces in the generated
+/// polyhedron. This method can make assumptions about how faces are ordered, making it much faster than a naive
+/// implementation.
+/// 
+/// This method was specifically provided for use in tile-based games, but it can be used for anything that needs an
+/// adjacency graph.
+/// 
+/// ```
+/// use hexglobe::HexGlobe;
+/// 
+/// let globe = HexGlobe::<4>::new();
+/// 
+/// let adjacency = globe.adjacency();
+/// 
+/// // ... Pass adjacency to your graph backend of choice.
+/// ```
+pub struct HexGlobe<const N: u32> {
     seed: Seed<N>,
     subdivision: SubdividedTriangle<N>,
     faces: Vec<ExactFace>,
 }
 
-impl<const N: u32> ExactGlobe<N> {
+impl<const N: u32> HexGlobe<N> {
     const SEED_VERTICES: usize = 12;
     const SEED_EDGES: usize = 30;
     const SEED_FACES: usize = 20;
     const FACES_PER_VERTEX: usize = 1;
     const FACES_PER_EDGE: usize = N as usize - 1;
     const FACES_PER_FACE: usize = ((N - 1) * (max(N, 2) - 2) / 2) as usize;
-    const PENTAGONS: usize = Self::SEED_VERTICES;
-    const HEXAGONS: usize = Self::SEED_EDGES * Self::FACES_PER_EDGE + Self::SEED_FACES * Self::FACES_PER_FACE;
+    /// The number of pentagons in this tiling. This will always be 12 due to the mathematical properties of the tiling.
+    pub const PENTAGONS: usize = Self::SEED_VERTICES;
+    /// The number of hexagons in this tiling.
+    pub const HEXAGONS: usize = Self::SEED_EDGES * Self::FACES_PER_EDGE + Self::SEED_FACES * Self::FACES_PER_FACE;
+    /// The total number of faces in this tiling ([PENTAGONS](#associatedconstant.PENTAGONS) +
+    /// [HEXAGONS](#associatedconstant.HEXAGONS))
     pub const FACES: usize = Self::PENTAGONS + Self::HEXAGONS;
     const MESH_PENTAGON_VERTICES: usize = Self::PENTAGONS * 5;
     const MESH_HEXAGON_VERTICES: usize = Self::HEXAGONS * 6;
-    const MESH_VERTICES: usize = Self::MESH_PENTAGON_VERTICES + Self::MESH_HEXAGON_VERTICES;
+    /// The number of vertices in the produced mesh. This is useful for reducing unnecessary memory allocations while
+    /// creating the mesh.
+    pub const MESH_VERTICES: usize = Self::MESH_PENTAGON_VERTICES + Self::MESH_HEXAGON_VERTICES;
     const MESH_PENTAGON_TRIANGLES: usize = 3;
     const MESH_HEXAGON_TRIANGLES: usize = 4;
     pub const MESH_TRIANGLES: usize = Self::PENTAGONS * Self::MESH_PENTAGON_TRIANGLES + Self::HEXAGONS * Self::MESH_HEXAGON_TRIANGLES;
@@ -348,7 +395,7 @@ impl<const N: u32> ExactGlobe<N> {
         }
     }
     
-    /// [Vec] of undirected edges between adjacent faces represented by tuples of face indices. The output will not
+    /// [Vec] of undirected edges between adjacent faces represented by tuples of face indices. The output will never
     /// contain duplicate edges but no other guarantees are made. Edges may appear in any order in the list and edge
     /// endpoints may appear in any order in the corresponding tuple.
     pub fn adjacency(&self) -> Vec<(usize, usize)> {
@@ -366,11 +413,6 @@ impl<const N: u32> ExactGlobe<N> {
         }
         
         adjacency
-    }
-    
-    /// Returns the number of faces in the specified polyhedron.
-    pub const fn count_faces(&self) -> usize {
-        Self::FACES
     }
     
     /// Generates vertices of a Goldberg polyhedron with an optional radius (default of 1.0), which are the centroids of
@@ -408,7 +450,7 @@ impl<const N: u32> ExactGlobe<N> {
     }
     
     /// Generates the vertex buffer for a mesh of the given Goldberg polyhedron where `centroids` is a reference to the
-    /// output of the [centroids] method.
+    /// output of the [centroids](#method.centroids) method.
     pub fn mesh_vertices(&self, centroids: &Vec<Vec<Vec3>>) -> Vec<[f32; 3]> {
         let mut vertices = vec![[0.0; 3]; Self::MESH_VERTICES];
         let mut n = 0;
@@ -439,8 +481,8 @@ impl<const N: u32> ExactGlobe<N> {
         vertices
     }
     
-    /// Returns a list of the faces of the given Goldberg polyhedron used as a preliminary step in [mesh_triangles] but
-    /// can also be used independently.
+    /// Returns a list of the faces of the given Goldberg polyhedron used as a preliminary step in
+    /// [mesh_triangles](#method.mesh_triangles) but can also be used independently.
     pub fn mesh_faces(&self) -> Vec<MeshFace> {
         let mut output = vec![MeshFace::default(); Self::FACES];
         
@@ -464,7 +506,7 @@ impl<const N: u32> ExactGlobe<N> {
     
     /// Generates the triangle buffer for a mesh of the given Goldberg polyhedron with radius `r` (default 1.0). Vertex
     /// indices are deterministic so this is a cheap function and can be called independently of vertex computation. The
-    /// `faces` parameter should be a reference to the output of [mesh_faces].
+    /// `faces` parameter should be a reference to the output of [mesh_faces](#method.mesh_faces).
     pub fn mesh_triangles(&self, faces: &Vec<MeshFace>) -> Vec<u32> {
         let mut output = vec![0; Self::MESH_TRIANGLES * 3];
         

@@ -1,3 +1,5 @@
+#![doc = include_str!("slerp/DOCS.md")]
+
 #[cfg(test)]
 mod tests;
 

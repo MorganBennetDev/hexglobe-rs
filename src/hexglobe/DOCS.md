@@ -1,0 +1,1 @@
+Exports all structures and methods needed to create a hexagonal tiling of a sphere (with exactly twelve pentagonal tiles) and create a mesh of that tiling with normals and UVs.

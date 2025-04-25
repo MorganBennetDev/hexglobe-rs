@@ -1,0 +1,1 @@
+Contains an implementation of the general spherical average algorithm from [Spherical Averages and Applications to Spherical Splines and Interpolation](https://mathweb.ucsd.edu/~sbuss/ResearchWeb/spheremean/paper.pdf) by Fillmore and Bruss. Exports [slerp_n], which can take in any number of points and weights, and the shorthand method [slerp_3], which is used in this library.

@@ -7,7 +7,7 @@ use bevy::{
     },
 };
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use hexglobe::globe::ExactGlobe;
+use hexglobe::HexGlobe;
 
 fn main() {
     App::new()
@@ -64,7 +64,7 @@ fn draw_debug(
 }
 
 fn create_mesh() -> Mesh {
-    let globe = ExactGlobe::<3>::new();
+    let globe = HexGlobe::<3>::new();
     let centroids = globe.centroids(None);
     let vertices = globe.mesh_vertices(&centroids);
     let faces = globe.mesh_faces();

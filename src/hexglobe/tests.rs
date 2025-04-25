@@ -4,7 +4,7 @@ use std::hash::RandomState;
 use assert2::check;
 use glam::Vec3;
 use itertools::Itertools;
-use crate::globe::{ExactFace, ExactGlobe};
+use crate::hexglobe::{ExactFace, HexGlobe};
 use crate::subdivided_triangle::SubdividedTriangle;
 
 // Number of vertices, edges, and faces of icosahedron.
@@ -14,8 +14,8 @@ const F: usize = 20;
 
 fn face_creation_test_hexagons<const N: u32>() {
     let template = SubdividedTriangle::<N>::new();
-    let edge_faces = ExactGlobe::<N>::edge_faces_from_template(&template).count();
-    let face_faces = ExactGlobe::<N>::face_faces_from_template(&template).count();
+    let edge_faces = HexGlobe::<N>::edge_faces_from_template(&template).count();
+    let face_faces = HexGlobe::<N>::face_faces_from_template(&template).count();
     
     let n_edge_faces = E * (N - 1) as usize;
     let n_face_faces = F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
@@ -23,14 +23,14 @@ fn face_creation_test_hexagons<const N: u32>() {
     check!(edge_faces == n_edge_faces, "Incorrect number of hexagons crossing edges for icosahedron with {:?} subdivisions.", N);
     check!(face_faces == n_face_faces, "Incorrect number of hexagons within faces for icosahedron with {:?} subdivisions.", N);
     
-    let pentagon = ExactGlobe::<N>::edge_faces_from_template(&template).position(|v| match v {
+    let pentagon = HexGlobe::<N>::edge_faces_from_template(&template).position(|v| match v {
         ExactFace::Pentagon(_) => true,
         _ => false
     });
     
     check!(pentagon == None, "Found pentagon crossing edge for icosahedron with {:?} subdivisions.", N);
     
-    let pentagon = ExactGlobe::<N>::face_faces_from_template(&template).position(|v| match v {
+    let pentagon = HexGlobe::<N>::face_faces_from_template(&template).position(|v| match v {
         ExactFace::Pentagon(_) => true,
         _ => false
     });
@@ -40,13 +40,13 @@ fn face_creation_test_hexagons<const N: u32>() {
 
 fn face_creation_test_pentagons<const N: u32>() {
     let template = SubdividedTriangle::<N>::new();
-    let vertex_faces = ExactGlobe::<N>::vertex_faces_from_template(&template).count();
+    let vertex_faces = HexGlobe::<N>::vertex_faces_from_template(&template).count();
     
     let n_vertex_faces = V;
     
     check!(vertex_faces == n_vertex_faces, "Incorrect number of pentagons on vertices for icosahedron with {:?} subdivisions.", N);
     
-    let hexagon = ExactGlobe::<N>::vertex_faces_from_template(&template).position(|v| match v {
+    let hexagon = HexGlobe::<N>::vertex_faces_from_template(&template).position(|v| match v {
         ExactFace::Hexagon(_) => true,
         _ => false
     });
@@ -55,7 +55,7 @@ fn face_creation_test_pentagons<const N: u32>() {
 }
 
 fn basic_count_test<const N: u32>() {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     let n_vertices_expected = F * (N * N) as usize;
     let n_faces = V + E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     let n_vertices = globe.centroids(None).iter().flatten().count();
@@ -65,7 +65,7 @@ fn basic_count_test<const N: u32>() {
 }
 
 fn hexagon_count_test<const N: u32>() {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     let expected = E * (N - 1) as usize + F * ((N - 1) * (N.max(2) - 2) / 2) as usize;
     
     let hexagons = globe.faces.iter()
@@ -78,7 +78,7 @@ fn hexagon_count_test<const N: u32>() {
 }
 
 fn pentagon_count_test<const N: u32>() {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     
     let pentagons = globe.faces.iter()
         .filter(|f| match f {
@@ -97,7 +97,7 @@ fn difference_to_vec(d: &Difference<(usize, usize), RandomState>) -> Vec<(usize,
 }
 
 fn adjacency_test<const N: u32>() {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     let computed_adjacency = globe.adjacency().into_iter()
         .map(|(a, b)| (a.min(b), a.max(b)))
         .collect::<HashSet<_>>();
@@ -132,13 +132,13 @@ fn adjacency_test<const N: u32>() {
         .collect::<HashSet<_>>();
     
     check!(computed_adjacency.is_subset(&expected_adjacency),
-        "Not all computed adjacencies are real for globe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
+        "Not all computed adjacencies are real for hexglobe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
         N,
         computed_adjacency.iter().count(),
         expected_adjacency.iter().count(),
         difference_to_vec(&computed_adjacency.difference(&expected_adjacency)), difference_to_vec(&expected_adjacency.difference(&computed_adjacency)));
     check!(expected_adjacency.is_subset(&computed_adjacency),
-        "Not all adjacencies are computed for globe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
+        "Not all adjacencies are computed for hexglobe with {:?} subdivisions.\nComputed {:?}\nActual {:?}\nComputed - Actual {:?}\nActual - Computed {:?}",
         N,
         computed_adjacency.iter().count(),
         expected_adjacency.iter().count(),
@@ -146,7 +146,7 @@ fn adjacency_test<const N: u32>() {
 }
 
 fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     
     let actual = globe.vertex_index_to_face_index(f, i);
     let actual_face = globe.faces[actual];
@@ -157,11 +157,11 @@ fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
         .map(|v| globe.subdivision.triangles[v.subdivision()].clone())
         .position(|t| t.u == i || t.v == i || t.w == i);
     
-    check!(matches.is_some(), "Did not get expected face index for globe with {:?} subdivisions.", N);
+    check!(matches.is_some(), "Did not get expected face index for hexglobe with {:?} subdivisions.", N);
 }
 
 fn normal_test<const N: u32>() {
-    let globe = ExactGlobe::<N>::new();
+    let globe = HexGlobe::<N>::new();
     let centroids = globe.centroids(None);
     let vertices = globe.mesh_vertices(&centroids);
     let faces = globe.mesh_faces();
@@ -185,12 +185,12 @@ fn normal_test<const N: u32>() {
             // Allow a maximum error of +/-0.573 degrees in angle between normal and face.
             let e = 0.01;
             
-            check!(n_u.dot(uv) <= e, "Found invalid normal for u, uv in globe with {:?} subdivisions (index {:?}).", N, i);
-            check!(n_u.dot(-wu) <= e, "Found invalid normal for u, wu in globe with {:?} subdivisions (index {:?}).", N, i);
-            check!(n_v.dot(-uv) <= e, "Found invalid normal for v, uv in globe with {:?} subdivisions (index {:?}).", N, j);
-            check!(n_v.dot(vw) <= e, "Found invalid normal for v, vw in globe with {:?} subdivisions (index {:?}).", N, j);
-            check!(n_w.dot(-vw) <= e, "Found invalid normal for w, vw in globe with {:?} subdivisions (index {:?}).", N, k);
-            check!(n_w.dot(wu) <= e, "Found invalid normal for w, wu in globe with {:?} subdivisions (index {:?}).", N, k);
+            check!(n_u.dot(uv) <= e, "Found invalid normal for u, uv in hexglobe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_u.dot(-wu) <= e, "Found invalid normal for u, wu in hexglobe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_v.dot(-uv) <= e, "Found invalid normal for v, uv in hexglobe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_v.dot(vw) <= e, "Found invalid normal for v, vw in hexglobe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_w.dot(-vw) <= e, "Found invalid normal for w, vw in hexglobe with {:?} subdivisions (index {:?}).", N, k);
+            check!(n_w.dot(wu) <= e, "Found invalid normal for w, wu in hexglobe with {:?} subdivisions (index {:?}).", N, k);
         });
 }
 
