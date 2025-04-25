@@ -367,7 +367,7 @@ impl<const N: u32> ExactGlobe<N> {
     
     /// Returns the number of faces in the specified polyhedron.
     pub const fn count_faces(&self) -> usize {
-        self.faces.len()
+        Self::FACES
     }
     
     /// Generates vertices of a Goldberg polyhedron with an optional radius (default of 1.0), which are the centroids of
