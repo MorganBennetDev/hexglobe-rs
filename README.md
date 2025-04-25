@@ -1,4 +1,9 @@
-# Hexglobe
+Hexglobe
+========
+
+[<img alt="github" src="https://img.shields.io/badge/github-morganbennetdev/hexglobe--rs-a?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/MorganBennetDev/hexglobe-rs)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/hexglobe?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/hexglobe)
+[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-hexglobe-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/hexglobe)
 
 Library to generate hexagonal tessellations of a sphere (also known as Goldberg polyhedra) quickly and accurately. Every tessellation is the dual of an icosahedron whose faces have been subdivided one or more times. Multipoint spherical linear interpolation (slerp) is used when calculating the centroids of triangles to ensure the resulting faces have as uniform a shape and size as practical.
 
