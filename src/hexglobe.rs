@@ -579,4 +579,37 @@ impl<const N: u32> HexGlobe<N> {
         
         normals
     }
+    
+    pub fn mesh_uvs(&self) -> Vec<[f32; 2]> {
+        let mut uvs = vec![[0.0, 0.0]; Self::MESH_VERTICES];
+        
+        for i in 0..Self::PENTAGONS {
+            let n = i * 5;
+            
+            uvs[n..(n + 5)].copy_from_slice(&[
+                [1.0, 0.5],
+                [0.618, 0.0],
+                [0.0, 0.191],
+                [0.0, 0.809],
+                [0.618, 1.0]
+            ]);
+        }
+        
+        let k = Self::PENTAGONS * 5;
+        
+        for i in 0..Self::HEXAGONS {
+            let n = k + i * 6;
+            
+            uvs[n..(n + 6)].copy_from_slice(&[
+                [1.0, 0.5],
+                [0.75, 1.0],
+                [0.25, 1.0],
+                [0.0, 0.5],
+                [0.25, 0.0],
+                [0.75, 0.0]
+            ]);
+        }
+        
+        uvs
+    }
 }
