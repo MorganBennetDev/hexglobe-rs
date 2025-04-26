@@ -5,7 +5,12 @@ use assert2::check;
 use glam::Vec3;
 use itertools::Itertools;
 use crate::hexglobe::{ExactFace, HexGlobe};
+use crate::hexglobe::seed::Seed;
+use crate::MeshFace;
 use crate::subdivided_triangle::SubdividedTriangle;
+
+// Allow a maximum error of +/-0.573 degrees in angle between normal and face.
+const NORMAL_EPSILON: f32 = 0.01;
 
 // Number of vertices, edges, and faces of icosahedron.
 const V: usize = 12;
@@ -182,16 +187,39 @@ fn normal_test<const N: u32>() {
             let n_u = Vec3::from_array(normals[i]);
             let n_v = Vec3::from_array(normals[j]);
             let n_w = Vec3::from_array(normals[k]);
-            // Allow a maximum error of +/-0.573 degrees in angle between normal and face.
-            let e = 0.01;
             
-            check!(n_u.dot(uv) <= e, "Found invalid normal for u, uv in hexglobe with {:?} subdivisions (index {:?}).", N, i);
-            check!(n_u.dot(-wu) <= e, "Found invalid normal for u, wu in hexglobe with {:?} subdivisions (index {:?}).", N, i);
-            check!(n_v.dot(-uv) <= e, "Found invalid normal for v, uv in hexglobe with {:?} subdivisions (index {:?}).", N, j);
-            check!(n_v.dot(vw) <= e, "Found invalid normal for v, vw in hexglobe with {:?} subdivisions (index {:?}).", N, j);
-            check!(n_w.dot(-vw) <= e, "Found invalid normal for w, vw in hexglobe with {:?} subdivisions (index {:?}).", N, k);
-            check!(n_w.dot(wu) <= e, "Found invalid normal for w, wu in hexglobe with {:?} subdivisions (index {:?}).", N, k);
+            check!(n_u.dot(uv) <= NORMAL_EPSILON, "Found invalid normal for u, uv in hexglobe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_u.dot(-wu) <= NORMAL_EPSILON, "Found invalid normal for u, wu in hexglobe with {:?} subdivisions (index {:?}).", N, i);
+            check!(n_v.dot(-uv) <= NORMAL_EPSILON, "Found invalid normal for v, uv in hexglobe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_v.dot(vw) <= NORMAL_EPSILON, "Found invalid normal for v, vw in hexglobe with {:?} subdivisions (index {:?}).", N, j);
+            check!(n_w.dot(-vw) <= NORMAL_EPSILON, "Found invalid normal for w, vw in hexglobe with {:?} subdivisions (index {:?}).", N, k);
+            check!(n_w.dot(wu) <= NORMAL_EPSILON, "Found invalid normal for w, wu in hexglobe with {:?} subdivisions (index {:?}).", N, k);
         });
+}
+
+fn planar_face_test<const N: u32>() {
+    let globe = HexGlobe::<N>::new();
+    let centroids = globe.centroids(None);
+    let vertices = globe.mesh_vertices(&centroids);
+    let faces = globe.mesh_faces();
+    
+    for face in &faces {
+        let indices = match face {
+            MeshFace::Pentagon(v) => v.to_vec(),
+            MeshFace::Hexagon(v) => v.to_vec()
+        };
+        
+        let v = indices.into_iter()
+            .map(|i| Vec3::from_array(vertices[i as usize]))
+            .collect_vec();
+        
+        let origin = v[0];
+        let normal = (v[1] - v[0]).cross(v[2] - v[0]);
+        
+        for u in v[1..].iter() {
+            check!((u - origin).dot(normal) <= NORMAL_EPSILON, "Found curved face for globe with {:?} subdivisions.", N);
+        }
+    }
 }
 
 #[test]
@@ -286,4 +314,34 @@ fn normal() {
     normal_test::<4>();
     
     normal_test::<5>();
+}
+
+#[test]
+fn planar() {
+    planar_face_test::<1>();
+    
+    planar_face_test::<2>();
+    
+    planar_face_test::<3>();
+    
+    planar_face_test::<4>();
+}
+
+#[test]
+fn seed() {
+    let seed = Seed::<1>::icosahedron();
+    
+    let sides = seed.base_faces().iter()
+        .flat_map(|(_, t)| [
+            t.u.distance(t.v),
+            t.v.distance(t.w),
+            t.w.distance(t.u)
+        ])
+        .collect_vec();
+    
+    sides.iter()
+        .tuple_combinations::<(_, _)>()
+        .for_each(|(a, b)| {
+            check!((a - b).abs() <= f32::EPSILON, "Icosahedron sides do not have equal length.");
+        });
 }
