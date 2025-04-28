@@ -84,13 +84,13 @@ impl Default for MeshFace {
 
 /// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
 /// times.
-/// 
+///
 /// # Creating a Mesh
-/// 
+///
 /// The process of creating a mesh is designed to expose as much data as necessary and reasonable to the consumer,
 /// allowing them to perform each step if and when they need to and avoiding the need to write caching logic for complex
 /// backend calculations. This leads to a slightly verbose interface, but the tradeoffs should be worth the flexibility.
-/// 
+///
 /// ```
 /// use hexglobe::HexGlobe;
 ///
@@ -104,23 +104,23 @@ impl Default for MeshFace {
 ///
 /// // ... Pass vertices, triangles, and normals to your rendering library of choice.
 /// ```
-/// 
+///
 /// # Creating an Adjacency Graph
-/// 
+///
 /// The [adjacency](#method.adjacency) method returns a list of tuples representing undirected edges between faces in the generated
 /// polyhedron. This method can make assumptions about how faces are ordered, making it much faster than a naive
 /// implementation.
-/// 
+///
 /// This method was specifically provided for use in tile-based games, but it can be used for anything that needs an
 /// adjacency graph.
-/// 
+///
 /// ```
 /// use hexglobe::HexGlobe;
-/// 
+///
 /// let globe = HexGlobe::<4>::new();
-/// 
+///
 /// let adjacency = globe.adjacency();
-/// 
+///
 /// // ... Pass adjacency to your graph backend of choice.
 /// ```
 pub struct HexGlobe<const N: u32> {
@@ -596,8 +596,25 @@ impl<const N: u32> HexGlobe<N> {
         }
         
         let k = Self::PENTAGONS * 5;
+        let m = Self::FACES_PER_EDGE * Self::SEED_EDGES;
         
-        for i in 0..Self::HEXAGONS {
+        for i in 0..m {
+            let n = k + i * 6;
+            
+            uvs[n..(n + 6)].copy_from_slice(&[
+                [1.0, 0.5],
+                [0.75, 1.0],
+                [0.25, 1.0],
+                [0.0, 0.5],
+                [0.25, 0.0],
+                [0.75, 0.0]
+            ]);
+        }
+        
+        let k = Self::PENTAGONS * 5 + Self::FACES_PER_EDGE * Self::SEED_EDGES * 6;
+        let m = Self::FACES_PER_FACE * Self::SEED_FACES;
+        
+        for i in 0..m {
             let n = k + i * 6;
             
             uvs[n..(n + 6)].copy_from_slice(&[

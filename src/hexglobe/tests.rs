@@ -159,7 +159,7 @@ fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
         ExactFace::Pentagon(v) => v.into_iter().collect::<Vec<_>>(),
         ExactFace::Hexagon(v) => v.into_iter().collect::<Vec<_>>()
     }.iter()
-        .map(|v| globe.subdivision.triangles[v.subdivision()].clone())
+        .map(|v| globe.subdivision.triangle(v.subdivision()).clone())
         .position(|t| t.u == i || t.v == i || t.w == i);
     
     check!(matches.is_some(), "Did not get expected face index for hexglobe with {:?} subdivisions.", N);

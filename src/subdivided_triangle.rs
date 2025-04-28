@@ -36,7 +36,6 @@ pub const fn n_triangles_up(n: u32) -> usize {
     (n * (n + 1) / 2) as usize
 }
 
-
 /// The number of "downward pointing" triangles (complement of upward facing set) at subdivision level `n`. Used for
 /// optimization purposes.
 pub const fn n_triangles_down(n: u32) -> usize {
@@ -52,8 +51,8 @@ pub const fn n_edges(n: u32) -> usize {
 /// Represents a triangle which has been subdivided `N` times using rational barycentric coordinates for precision.
 #[derive(Clone, Debug)]
 pub struct SubdividedTriangle<const N: u32> {
-    pub vertices: Vec<ImplicitDenominator<IVec3, N>>,
-    pub triangles: Vec<Triangle<usize>>,
+    vertices: Vec<ImplicitDenominator<IVec3, N>>,
+    triangles: Vec<Triangle<usize>>,
 }
 
 impl<const N: u32> SubdividedTriangle<N> {
@@ -80,14 +79,14 @@ impl<const N: u32> SubdividedTriangle<N> {
         let dv = ImplicitDenominator::<_, N>::wrap(IVec3::new(-1, 0, 1));
         
         let triangles_up = vertices.iter()
-            .filter(|v| v.x > 0 && v.y < N as i32 && v.z < N as i32)
+            .filter(|v| v.x > 0)
             .map(|v| Triangle::new(
                 Self::compute_vertex_index_unchecked(v.inner()),
                 Self::compute_vertex_index_unchecked((v + du).inner()),
                 Self::compute_vertex_index_unchecked((v + dv).inner())
             ));
         let triangles_down = vertices.iter()
-            .filter(|v| v.x < N as i32 && v.y > 0 && v.z > 0)
+            .filter(|v| v.y > 0 && v.z > 0)
             .map(|v| Triangle::new(
                 Self::compute_vertex_index_unchecked(v.inner()),
                 Self::compute_vertex_index_unchecked((v - du).inner()),
@@ -105,6 +104,39 @@ impl<const N: u32> SubdividedTriangle<N> {
             vertices,
             triangles,
         }
+    }
+    
+    pub fn vertex(&self, i: usize) -> ImplicitDenominator<IVec3, N> {
+        self.vertices[i]
+    }
+    
+    pub fn triangle(&self, i: usize) -> Triangle<usize> {
+        let [u, v, w] = if i < Self::TRIANGLES_UP {
+            // Greatest k such that TRIANGLES_UP - k * (k + 1) / 2 > i
+            // 2TRIANGLES_UP - k^2+k=2i
+            // k^2+k+2i-2TRIANGLES_UP=0
+            // k=(-1+sqrt(1+8TRIANGLES_UP-8i))/2
+            // Row is N - k
+            // x of v and w is row, x of u is row + 1
+            let k = ((1 + 8 * Self::TRIANGLES_UP - 8 * i).isqrt() - 1) / 2;
+            let x = N as usize + 1 - k;
+            let y = 0;
+            let z = 0;
+            
+            [
+                self.triangles[i].u,
+                self.triangles[i].v,
+                self.triangles[i].w
+            ]
+        } else {
+            [
+                self.triangles[i].u,
+                self.triangles[i].v,
+                self.triangles[i].w
+            ]
+        };
+        
+        Triangle { u, v, w }
     }
     
     const fn upward_row(&self, i: usize) -> impl Iterator<Item = usize> {
@@ -138,17 +170,17 @@ impl<const N: u32> SubdividedTriangle<N> {
     
     /// Iterator over all triangles in this subdivision.
     pub fn triangles(&self) -> impl Iterator<Item = Triangle<ImplicitDenominator<IVec3, N>>> {
-        self.triangles.iter()
-            .map(|t| Triangle::new(
-                self.vertices[t.u],
-                self.vertices[t.v],
-                self.vertices[t.w]
+        (0..Self::TRIANGLES).into_iter()
+            .map(|i| Triangle::new(
+                self.vertex(self.triangle(i).u),
+                self.vertex(self.triangle(i).v),
+                self.vertex(self.triangle(i).w)
             ))
     }
     
     /// Get the unnormalized barycentric coordinates of the vertex with index `i`.
     pub fn vertex_denominator(&self, i: usize) -> IVec3 {
-        self.vertices[i].inner()
+        self.vertex(i).inner()
     }
     
     /// Index of the `u` vertex of this triangle (`(1,0,0)` in barycentric coordinates).
