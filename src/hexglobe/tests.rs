@@ -148,6 +148,18 @@ fn adjacency_test<const N: u32>() {
         computed_adjacency.iter().count(),
         expected_adjacency.iter().count(),
         difference_to_vec(&computed_adjacency.difference(&expected_adjacency)), difference_to_vec(&expected_adjacency.difference(&computed_adjacency)));
+    
+    let duplicates_ordered = globe.adjacency().into_iter()
+        .duplicates()
+        .collect_vec();
+    
+    check!(duplicates_ordered.len() == 0, "Duplicate ordered edges found in adjacency edge list for hexglobe with {:?} subdivisions {:?}", N, duplicates_ordered);
+    
+    let duplicates_unordered = globe.adjacency().into_iter()
+        .duplicates_by(|(a, b)| (*a.min(b), *a.max(b)))
+        .collect_vec();
+    
+    check!(duplicates_unordered.len() == 0, "Duplicate unordered edges found in adjacency edge list for hexglobe with {:?} subdivisions {:?}", N, duplicates_unordered);
 }
 
 fn vertex_index_to_face_index_test<const N: u32>(f: usize, i: usize) {
@@ -286,6 +298,8 @@ fn adjacency() {
     adjacency_test::<3>();
     
     adjacency_test::<4>();
+    
+    adjacency_test::<5>();
     
     adjacency_test::<5>();
 }

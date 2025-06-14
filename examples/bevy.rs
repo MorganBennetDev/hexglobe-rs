@@ -81,7 +81,6 @@ fn create_mesh() -> Mesh {
     let faces = globe.mesh_faces();
     let triangles = globe.mesh_triangles(&faces);
     let normals = globe.mesh_normals(&vertices);
-    let uvs = globe.mesh_uvs();
     
     Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD)
         .with_inserted_attribute(
@@ -94,9 +93,5 @@ fn create_mesh() -> Mesh {
         .with_inserted_attribute(
             Mesh::ATTRIBUTE_NORMAL,
             normals
-        )
-        .with_inserted_attribute(
-            Mesh::ATTRIBUTE_UV_0,
-            uvs
         )
 }

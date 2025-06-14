@@ -61,6 +61,18 @@ fn vertex_adjacency_test<const N: u32>() {
         .collect::<HashSet<_>>();
     
     check!(difference == HashSet::new(), "Found edges in triangle with {:?} subdivisions that were not returned by adjacency method.", N);
+    
+    let duplicates_ordered = tri.vertex_adjacency().into_iter()
+        .duplicates()
+        .collect_vec();
+    
+    check!(duplicates_ordered.len() == 0, "Duplicate ordered edges found in adjacency edge list for hexglobe with {:?} subdivisions {:?}", N, duplicates_ordered);
+    
+    let duplicates_unordered = tri.vertex_adjacency().into_iter()
+        .duplicates_by(|(a, b)| (*a.min(b), *a.max(b)))
+        .collect_vec();
+    
+    check!(duplicates_unordered.len() == 0, "Duplicate unordered edges found in adjacency edge list for hexglobe with {:?} subdivisions {:?}", N, duplicates_unordered);
 }
 
 fn row_test<const N: u32>(i: usize) {

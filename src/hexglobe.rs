@@ -6,7 +6,7 @@ mod tests;
 pub(crate) mod packed_index;
 mod seed;
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use itertools::Itertools;
 use crate::slerp::slerp_3;
 use packed_index::PackedIndex;
@@ -80,6 +80,41 @@ impl Default for MeshFace {
     fn default() -> Self {
         Self::Hexagon([0; 6])
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum FaceUV {
+    Pentagon([[f32; 2]; 5]),
+    Hexagon([[f32; 2]; 6])
+}
+
+impl FaceUV {
+    fn as_array<const N: usize>(&self) -> [[f32; 2]; N] {
+        let mut output = [[0.0; 2]; N];
+        
+        match self {
+            FaceUV::Pentagon(v) => &output[0..N].copy_from_slice(&v[0..N]),
+            FaceUV::Hexagon(v) => &output[0..N].copy_from_slice(&v[0..N])
+        };
+        
+        output
+    }
+}
+
+// https://www.johndcook.com/blog/2023/08/27/intersect-circles/
+// Assumes input is valid
+fn circle_intersect(p0: Vec2, r0: f32, p1: Vec2, r1: f32) -> (Vec2, Vec2) {
+    let v = p1 - p0;
+    
+    let d = v.length();
+    let u = v.normalize();
+    
+    let xvec = p0 + (d * d - r1 * r1 + r0 * r0) * u / (2.0 * d);
+    
+    let uperp = Vec2::new(u.y, -u.x);
+    let a = ((-d + r1 - r0) * (-d - r1 + r0) * (-d + r1 + r0) * (d + r1 + r0)).sqrt() / d;
+    
+    (xvec + a * uperp / 2.0, xvec - a * uperp / 2.0)
 }
 
 /// Contains functionality to create a Goldberg polyhedron from an icosahedron whose faces have been subdivided `N`
@@ -578,55 +613,5 @@ impl<const N: u32> HexGlobe<N> {
         }
         
         normals
-    }
-    
-    pub fn mesh_uvs(&self) -> Vec<[f32; 2]> {
-        let mut uvs = vec![[0.0, 0.0]; Self::MESH_VERTICES];
-        
-        for i in 0..Self::PENTAGONS {
-            let n = i * 5;
-            
-            uvs[n..(n + 5)].copy_from_slice(&[
-                [1.0, 0.5],
-                [0.618, 0.0],
-                [0.0, 0.191],
-                [0.0, 0.809],
-                [0.618, 1.0]
-            ]);
-        }
-        
-        let k = Self::PENTAGONS * 5;
-        let m = Self::FACES_PER_EDGE * Self::SEED_EDGES;
-        
-        for i in 0..m {
-            let n = k + i * 6;
-            
-            uvs[n..(n + 6)].copy_from_slice(&[
-                [1.0, 0.5],
-                [0.75, 1.0],
-                [0.25, 1.0],
-                [0.0, 0.5],
-                [0.25, 0.0],
-                [0.75, 0.0]
-            ]);
-        }
-        
-        let k = Self::PENTAGONS * 5 + Self::FACES_PER_EDGE * Self::SEED_EDGES * 6;
-        let m = Self::FACES_PER_FACE * Self::SEED_FACES;
-        
-        for i in 0..m {
-            let n = k + i * 6;
-            
-            uvs[n..(n + 6)].copy_from_slice(&[
-                [1.0, 0.5],
-                [0.75, 1.0],
-                [0.25, 1.0],
-                [0.0, 0.5],
-                [0.25, 0.0],
-                [0.75, 0.0]
-            ]);
-        }
-        
-        uvs
     }
 }
